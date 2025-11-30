@@ -158,38 +158,41 @@ export const codeAgentFunction = inngest.createFunction(
 
     });
 
-    //transcript step.
-       const result =await network.run(event.data.value);
+    try {
+      //transcript step.
+      const result = await network.run(event.data.value);
 
-       const isError=
-       !result.state.data.summary||
-       Object.keys(result.state.data.files||{}).length==0;
+      const isError =
+        !result.state.data.summary ||
+        Object.keys(result.state.data.files || {}).length == 0;
 
-       const snadboxUrl = await step.run("get-sandbox-url", async ()=> {
-        const sandbox=await getSandbox(sandboxId);
-        const host= sandbox.getHost(3000);
+      const snadboxUrl = await step.run("get-sandbox-url", async () => {
+        const sandbox = await getSandbox(sandboxId);
+        const host = sandbox.getHost(3000);
         return `https://${host}`;
-       });
+      });
 
-       await step.run("save-result", async ()=> {
-        if(isError){
+      await step.run("save-result", async () => {
+        if (isError) {
           return await prisma.message.create({
-            data:{
-              content:"Something went wrong. Please try again.",
-              role:"ASSISTANT",
+            data: {
+              projectId: event.data.projectId,
+              content: "Something went wrong. Please try again.",
+              role: "ASSISTANT",
               type: "ERROR",
 
             },
           });
         }
-           
-      return await prisma.message.create({
-          data:{
+
+        return await prisma.message.create({
+          data: {
+            projectId: event.data.projectId,
             content: result.state.data.summary,
-            role:"ASSISTANT",
-            type:"RESULT",
-            fragment:{
-              create:{
+            role: "ASSISTANT",
+            type: "RESULT",
+            fragment: {
+              create: {
                 sandboxUrl: snadboxUrl,
                 title: "Fragment",
                 files: result.state.data.files,
@@ -197,16 +200,30 @@ export const codeAgentFunction = inngest.createFunction(
             }
           }
         })
-       })
-   
-   // summary stop.
-    
-    return { 
-       url: snadboxUrl,
-       title: "Fragment",
-       files: result.state.data.files,
-       summary: result.state.data.summary,
-      
+      })
+
+      // summary stop.
+
+      return {
+        url: snadboxUrl,
+        title: "Fragment",
+        files: result.state.data.files,
+        summary: result.state.data.summary,
+
       };
+    } catch (error) {
+      console.error("Agent execution failed:", error);
+      await step.run("save-error", async () => {
+        return await prisma.message.create({
+          data: {
+            projectId: event.data.projectId,
+            content: `An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`,
+            role: "ASSISTANT",
+            type: "ERROR",
+          },
+        });
+      });
+      throw error; // Re-throw to ensure Inngest marks it as failed
+    }
   },
 );
