@@ -2,33 +2,46 @@ import { PrismaClient, Prisma } from "../src/generated/prisma";
 
 const prisma = new PrismaClient();
 
-const userData: Prisma.UserCreateInput[] = [
+const projectData: Prisma.ProjectCreateInput[] = [
   {
-    name: "Alice",
-    email: "alice@prisma.io",
-    posts: {
+    name: "AI Chat Application",
+    messages: {
       create: [
         {
-          title: "Join the Prisma Discord",
-          content: "https://pris.ly/discord",
-          published: true,
+          content: "Hello! How can I help you today?",
+          role: "ASSISTANT",
+          type: "RESULT",
         },
         {
-          title: "Prisma on YouTube",
-          content: "https://pris.ly/youtube",
+          content: "Can you help me build a web app?",
+          role: "USER",
+          type: "RESULT",
+        },
+        {
+          content: "Of course! I'd be happy to help. What kind of web app would you like to build?",
+          role: "ASSISTANT",
+          type: "RESULT",
         },
       ],
     },
   },
   {
-    name: "Bob",
-    email: "bob@prisma.io",
-    posts: {
+    name: "Code Generator",
+    messages: {
       create: [
         {
-          title: "Follow Prisma on Twitter",
-          content: "https://www.twitter.com/prisma",
-          published: true,
+          content: "Generate a React component",
+          role: "USER",
+          type: "RESULT",
+          fragment: {
+            create: {
+              sandboxUrl: "https://codesandbox.io/example",
+              title: "Sample React Component",
+              files: {
+                "App.tsx": "import React from 'react';\n\nexport default function App() {\n  return <div>Hello World</div>;\n}",
+              },
+            },
+          },
         },
       ],
     },
@@ -36,9 +49,21 @@ const userData: Prisma.UserCreateInput[] = [
 ];
 
 export async function main() {
-  for (const u of userData) {
-    await prisma.user.create({ data: u });
+  console.log("Starting seed...");
+
+  for (const p of projectData) {
+    const project = await prisma.project.create({ data: p });
+    console.log(`Created project: ${project.name}`);
   }
+
+  console.log("Seeding completed!");
 }
 
-main();
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
