@@ -2,12 +2,12 @@ import { initTRPC } from '@trpc/server';
 import { cache } from 'react';
 import { superjson } from '@/lib/superjson';
 
-export const createTRPCContext = async () => {
+export const createTRPCContext = cache(async () => {
   /**
    * @see: https://trpc.io/docs/server/context
    */
   return { userId: 'user_123' };
-};
+});
 
 type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 

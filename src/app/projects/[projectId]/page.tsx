@@ -16,9 +16,12 @@ const Page = async ({ params }: Props) => {
        void queryClient.prefetchQuery(trpc.messages.getMany.queryOptions({
             projectId,
         }));
-       void queryClient.prefetchQuery(trpc.projects.getOne.queryOptions({
-            id: projectId,
-        }));
+       void queryClient.prefetchQuery({
+            ...trpc.projects.getOne.queryOptions({
+                id: projectId,
+            }),
+            staleTime: 5 * 60 * 1000, // 5 minutes
+       });
     
 
     return (
