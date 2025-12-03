@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 interface ThinkingStep {
     title: string;
@@ -34,71 +34,118 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
     // If we have thinking data, show it
     if (thinking && thinking.steps && thinking.steps.length > 0) {
         const currentStepIndex = thinking.steps.findIndex(step => !step.completed);
+        const allCompleted = currentStepIndex === -1;
+        const hasAnyCompleted = thinking.steps.some(step => step.completed);
 
         return (
-            <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-1">
-                    <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
-                    <span>Thinking...</span>
-                </div>
-
-                <div className="space-y-1 pl-5 border-l-2 border-muted">
-                    {thinking.steps.map((step, index) => {
-                        const isCurrent = index === currentStepIndex;
-                        const isExpanded = expandedSteps.has(index);
-                        const isVisible = step.completed || isCurrent;
-
-                        if (!isVisible) return null;
-
-                        return (
-                            <div key={index} className="ml-3">
-                                <button
-                                    onClick={() => toggleStep(index)}
-                                    className="flex items-start gap-2 text-left w-full group/step hover:opacity-80 transition-opacity"
-                                    disabled={!step.completed}
-                                >
-                                    <div className="mt-0.5">
-                                        {step.completed ? (
-                                            isExpanded ? (
-                                                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                                            ) : (
-                                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                                            )
-                                        ) : (
-                                            <div className="h-3.5 w-3.5 rounded-full border-2 border-primary animate-pulse" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className={`text-sm ${isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                                            {step.title}
-                                        </div>
-                                        {isExpanded && step.completed && step.content && (
-                                            <div className="text-xs text-muted-foreground/70 mt-1 pr-4 whitespace-pre-wrap">
-                                                {step.content}
-                                            </div>
-                                        )}
-                                        {isCurrent && (
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <div className="h-1 w-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                <div className="h-1 w-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                <div className="h-1 w-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
-                                            </div>
-                                        )}
-                                    </div>
-                                </button>
+            <div className="flex flex-col gap-3 p-4 rounded-xl border bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                    {allCompleted ? (
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                            <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    ) : (
+                        <div className="relative h-5 w-5 shrink-0">
+                            <div className="absolute inset-0 rounded-full border-2 border-primary/30" />
+                            <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                        </div>
+                    )}
+                    <div className="flex-1">
+                        <div className="text-sm font-semibold text-foreground">
+                            {allCompleted ? 'Thought complete' : 'Thinking'}
+                        </div>
+                        {!allCompleted && (
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                                Processing your request...
                             </div>
-                        );
-                    })}
+                        )}
+                    </div>
                 </div>
+
+                {hasAnyCompleted && (
+                    <div className="space-y-1.5">
+                        {thinking.steps.map((step, index) => {
+                            const isCurrent = index === currentStepIndex;
+                            const isExpanded = expandedSteps.has(index);
+                            const isVisible = step.completed || isCurrent;
+
+                            if (!isVisible) return null;
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={`rounded-lg border transition-all ${
+                                        isCurrent
+                                            ? 'bg-primary/5 border-primary/20'
+                                            : 'bg-background border-border hover:border-border/60'
+                                    }`}
+                                >
+                                    <button
+                                        onClick={() => step.completed && toggleStep(index)}
+                                        className="flex items-start gap-3 text-left w-full p-3 transition-colors"
+                                        disabled={!step.completed}
+                                    >
+                                        <div className="mt-0.5 shrink-0">
+                                            {step.completed ? (
+                                                <div className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <svg className="w-2.5 h-2.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                            ) : (
+                                                <div className="h-4 w-4 rounded-full border-2 border-primary/50 relative">
+                                                    <div className="absolute inset-0.5 rounded-full bg-primary/30 animate-pulse" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className={`text-sm font-medium ${
+                                                    isCurrent ? 'text-foreground' : 'text-muted-foreground'
+                                                }`}>
+                                                    {step.title}
+                                                </span>
+                                                {step.completed && step.content && (
+                                                    <ChevronRight
+                                                        className={`h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0 ${
+                                                            isExpanded ? 'rotate-90' : ''
+                                                        }`}
+                                                    />
+                                                )}
+                                            </div>
+                                            {isExpanded && step.completed && step.content && (
+                                                <div className="text-xs text-muted-foreground/80 mt-2 leading-relaxed whitespace-pre-wrap">
+                                                    {step.content}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         );
     }
 
     // Default loading animation when no thinking data
     return (
-        <div className="flex items-center gap-2">
-            <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
-            <span className="text-sm text-muted-foreground">Thinking...</span>
+        <div className="flex flex-col gap-3 p-4 rounded-xl border bg-muted/50">
+            <div className="flex items-center gap-2.5">
+                <div className="relative h-5 w-5 shrink-0">
+                    <div className="absolute inset-0 rounded-full border-2 border-primary/30" />
+                    <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                </div>
+                <div className="flex-1">
+                    <div className="text-sm font-semibold text-foreground">Thinking</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                        Processing your request...
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

@@ -32,7 +32,7 @@ export const codeAgentFunction = inngest.createFunction(
       await addThinkingStep(
         thinkingMessage.id,
         "Setting up environment",
-        "Initializing development sandbox with Next.js template and dependencies..."
+        `Creating isolated development environment for: "${event.data.value}"`
       );
       const sandbox= await Sandbox.create("vibe-nextjs-soumyadip-888");
       await completeCurrentThinkingStep(thinkingMessage.id);
@@ -42,8 +42,8 @@ export const codeAgentFunction = inngest.createFunction(
     await step.run("start-analysis", async () => {
       await addThinkingStep(
         thinkingMessage.id,
-        "Analyzing request",
-        "Understanding user requirements and planning the implementation approach..."
+        "Planning implementation",
+        `Analyzing how to best implement: "${event.data.value}"`
       );
       await completeCurrentThinkingStep(thinkingMessage.id);
     });
@@ -189,8 +189,8 @@ export const codeAgentFunction = inngest.createFunction(
       await step.run("start-generation", async () => {
         await addThinkingStep(
           thinkingMessage.id,
-          "Generating code",
-          "Creating implementation with best practices and proper architecture..."
+          "Writing code",
+          "Generating clean, production-ready code with GPT-5.1..."
         );
       });
 
@@ -208,8 +208,8 @@ export const codeAgentFunction = inngest.createFunction(
       const snadboxUrl = await step.run("get-sandbox-url", async () => {
         await addThinkingStep(
           thinkingMessage.id,
-          "Finalizing output",
-          "Preparing sandbox environment and verifying code quality..."
+          "Preparing preview",
+          "Setting up live preview environment and running the application..."
         );
         const sandbox = await getSandbox(sandboxId);
         const host = sandbox.getHost(3000);
