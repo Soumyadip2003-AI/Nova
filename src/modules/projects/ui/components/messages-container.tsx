@@ -38,23 +38,35 @@ export const MessagesContainer = ({projectId, activeFragment,setActiveFragment}:
     const lastMessage = messages[messages.length-1];
     const isLastMessageUser=lastMessage?.role==="USER";
 
+    // Find the last thinking message if exists
+    const lastThinkingMessage = messages.findLast((msg) => msg.type === "THINKING");
+
     return (
         <div className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 min-h-0 overflow-auto">
                 <div className="pt-2 pr-1">
-                    {messages.map((message)=>(
-                        <MessageCard
-                          key={message.id}
-                          content={message.content}
-                          role={message.role}
-                          fragment={message.fragment}
-                          createdAt={message.createAt}
-                          isActiveFragment={activeFragment?.id === message.fragment?.id}
-                          onFragmentClick={() => setActiveFragment(message.fragment)}
-                          type={message.type}
-                          />
-                    ))}
-                    {isLastMessageUser && <MessageLoading/>}
+                    {messages.map((message)=>{
+                        // Skip THINKING messages from normal display - we'll show them in MessageLoading
+                        if (message.type === "THINKING") return null;
+
+                        return (
+                            <MessageCard
+                              key={message.id}
+                              content={message.content}
+                              role={message.role}
+                              fragment={message.fragment}
+                              createdAt={message.createAt}
+                              isActiveFragment={activeFragment?.id === message.fragment?.id}
+                              onFragmentClick={() => setActiveFragment(message.fragment)}
+                              type={message.type}
+                            />
+                        );
+                    })}
+                    {(isLastMessageUser || lastThinkingMessage) && (
+                        <MessageLoading
+                            thinking={lastThinkingMessage?.thinking as any}
+                        />
+                    )}
                     <div ref={bottomRef}/>
 
                 </div>

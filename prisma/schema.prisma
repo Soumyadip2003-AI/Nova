@@ -30,6 +30,7 @@ enum MessageRole {
 enum MessageType {
   RESULT
   ERROR
+  THINKING
 }
 
 model Message {
@@ -37,6 +38,7 @@ model Message {
   content   String
   role      MessageRole
   type      MessageType
+  thinking  Json?       // Stores thinking steps: {steps: [{title: string, content: string, completed: boolean}]}
   createAt  DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
