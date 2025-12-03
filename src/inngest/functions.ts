@@ -205,7 +205,7 @@ export const codeAgentFunction = inngest.createFunction(
         !result.state.data.summary ||
         Object.keys(result.state.data.files || {}).length == 0;
 
-      const snadboxUrl = await step.run("get-sandbox-url", async () => {
+      const sandboxUrl = await step.run("get-sandbox-url", async () => {
         await addThinkingStep(
           thinkingMessage.id,
           "Preparing preview",
@@ -241,7 +241,7 @@ export const codeAgentFunction = inngest.createFunction(
             type: "RESULT",
             fragment: {
               create: {
-                sandboxUrl: snadboxUrl,
+                sandboxUrl: sandboxUrl,
                 title: "Fragment",
                 files: result.state.data.files,
               },
@@ -253,7 +253,7 @@ export const codeAgentFunction = inngest.createFunction(
       // summary stop.
 
       return {
-        url: snadboxUrl,
+        url: sandboxUrl,
         title: "Fragment",
         files: result.state.data.files,
         summary: result.state.data.summary,
