@@ -5,6 +5,12 @@ import { Sandbox} from "@e2b/code-interpreter"
 import { getSandbox, lastAssistantTextMessageContent } from "./utils";
 import { PROMPT } from '@/prompt';
 import { prisma } from '@/lib/db';
+import {
+  createThinkingMessage,
+  addThinkingStep,
+  completeCurrentThinkingStep,
+  deleteThinkingMessage
+} from '@/lib/thinking-helpers';
 
 interface AgentState{
   summary:string;
@@ -17,17 +23,37 @@ export const codeAgentFunction = inngest.createFunction(
   { id: "code-agent" },
   { event: "code-agent/run" },
   async ({ event , step}) => {
+    // Create thinking message to track progress
+    const thinkingMessage = await step.run("create-thinking", async () => {
+      return await createThinkingMessage(event.data.projectId);
+    });
+
     const sandboxId = await step.run("get-sandbox-id",async ()=>{
+      await addThinkingStep(
+        thinkingMessage.id,
+        "Setting up environment",
+        `Creating isolated development environment for: "${event.data.value}"`
+      );
       const sandbox= await Sandbox.create("vibe-nextjs-soumyadip-888");
+      await completeCurrentThinkingStep(thinkingMessage.id);
       return sandbox.sandboxId;
+    });
+
+    await step.run("start-analysis", async () => {
+      await addThinkingStep(
+        thinkingMessage.id,
+        "Planning implementation",
+        `Analyzing how to best implement: "${event.data.value}"`
+      );
+      await completeCurrentThinkingStep(thinkingMessage.id);
     });
 
     const codeAgent = createAgent<AgentState>({
       name: "code-agent",
       system: PROMPT,
       description: "An expert coding agent",
-      model: openai({ 
-        model: "gpt-5.1",  
+      model: openai({
+        model: "gpt-5.1",
         defaultParameters:{
           temperature: 0.1,
         }
@@ -135,6 +161,7 @@ export const codeAgentFunction = inngest.createFunction(
           if(lastAssistantMessageText && network){
             if(lastAssistantMessageText.includes("<task_summary")){
               network.state.data.summary = lastAssistantMessageText;
+              await completeCurrentThinkingStep(thinkingMessage.id);
             }
           }
           return result;
@@ -159,20 +186,41 @@ export const codeAgentFunction = inngest.createFunction(
     });
 
     try {
+      await step.run("start-generation", async () => {
+        await addThinkingStep(
+          thinkingMessage.id,
+          "Writing code",
+          "Generating clean, production-ready code with GPT-5.1..."
+        );
+      });
+
       //transcript step.
       const result = await network.run(event.data.value);
+
+      await step.run("complete-generation", async () => {
+        await completeCurrentThinkingStep(thinkingMessage.id);
+      });
 
       const isError =
         !result.state.data.summary ||
         Object.keys(result.state.data.files || {}).length == 0;
 
       const snadboxUrl = await step.run("get-sandbox-url", async () => {
+        await addThinkingStep(
+          thinkingMessage.id,
+          "Preparing preview",
+          "Setting up live preview environment and running the application..."
+        );
         const sandbox = await getSandbox(sandboxId);
         const host = sandbox.getHost(3000);
+        await completeCurrentThinkingStep(thinkingMessage.id);
         return `https://${host}`;
       });
 
       await step.run("save-result", async () => {
+        // Delete thinking message before creating final result
+        await deleteThinkingMessage(thinkingMessage.id);
+
         if (isError) {
           return await prisma.message.create({
             data: {
@@ -213,6 +261,16 @@ export const codeAgentFunction = inngest.createFunction(
       };
     } catch (error) {
       console.error("Agent execution failed:", error);
+
+      // Delete thinking message on error
+      await step.run("cleanup-thinking", async () => {
+        try {
+          await deleteThinkingMessage(thinkingMessage.id);
+        } catch (e) {
+          console.error("Failed to delete thinking message:", e);
+        }
+      });
+
       await step.run("save-error", async () => {
         return await prisma.message.create({
           data: {
