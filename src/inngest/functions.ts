@@ -270,24 +270,14 @@ export const codeAgentFunction = inngest.createFunction(
           "Setting up live preview environment and running the application..."
         );
 
-        // Give UI a moment to pick up the new step before completing it
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         const sandbox = await getSandbox(sandboxId);
         const host = sandbox.getHost(3000);
-
-        // Keep step visible for at least 1 second total
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         await completeCurrentThinkingStep(thinkingMessage.id);
         return `https://${host}`;
       });
 
       await step.run("save-result", async () => {
-        // Small delay to ensure UI polls and sees the final completed state
-        // This prevents the thinking message from being deleted before frontend sees it
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         // Delete thinking message before creating final result
         await deleteThinkingMessage(thinkingMessage.id);
 
