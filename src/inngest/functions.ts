@@ -89,6 +89,7 @@ export const codeAgentFunction = inngest.createFunction(
         `Creating isolated development environment for: "${event.data.value}"`
       );
       const sandbox= await Sandbox.create("vibe-nextjs-soumyadip-888");
+      // Complete immediately after sandbox is created
       await completeCurrentThinkingStep(thinkingMessage.id);
       return sandbox.sandboxId;
     });
@@ -215,7 +216,8 @@ export const codeAgentFunction = inngest.createFunction(
           if(lastAssistantMessageText && network){
             if(lastAssistantMessageText.includes("<task_summary")){
               network.state.data.summary = lastAssistantMessageText;
-              await completeCurrentThinkingStep(thinkingMessage.id);
+              // Don't complete step here - let the outer flow handle it
+              // This allows proper sequencing: Writing code → Preparing preview → Done
             }
           }
           return result;
@@ -240,6 +242,7 @@ export const codeAgentFunction = inngest.createFunction(
     });
 
     try {
+      // Add "Writing code" step before agent starts
       await step.run("start-generation", async () => {
         await addThinkingStep(
           thinkingMessage.id,
@@ -248,9 +251,10 @@ export const codeAgentFunction = inngest.createFunction(
         );
       });
 
-      //transcript step.
+      // Run the agent network - this is the long-running operation
       const result = await network.run(event.data.value);
 
+      // Complete the "Writing code" step after agent finishes
       await step.run("complete-generation", async () => {
         await completeCurrentThinkingStep(thinkingMessage.id);
       });
