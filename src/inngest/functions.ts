@@ -10,7 +10,8 @@ import {
   addThinkingStep,
   completeCurrentThinkingStep,
   deleteThinkingMessage,
-  cleanupThinkingMessageWithError
+  cleanupThinkingMessageWithError,
+  ThinkingErrorType
 } from '@/lib/thinking-helpers';
 
 interface AgentState{
@@ -39,10 +40,10 @@ export const codeAgentFunction = inngest.createFunction(
           return;
         }
 
-        // Determine appropriate error message based on error type
-        const errorMessage = error.message?.includes("cancel") || error.message?.includes("Cancel")
-          ? "Task was cancelled."
-          : "The task encountered an error. Please try again.";
+        // Determine appropriate error type based on error message
+        const errorType = error.message?.includes("cancel") || error.message?.includes("Cancel")
+          ? ThinkingErrorType.CANCELLED
+          : ThinkingErrorType.AGENT_ERROR;
 
         // Search for the thinking message to clean up
         const thinkingMessages = await prisma.message.findMany({
@@ -58,15 +59,17 @@ export const codeAgentFunction = inngest.createFunction(
           await cleanupThinkingMessageWithError(
             thinkingMessages[0].id,
             projectId,
-            errorMessage
+            errorType,
+            error.message
           );
         } else {
           // Always create error message even if no thinking message found
           console.warn("No thinking message found, creating error message anyway");
+          const { ERROR_MESSAGES } = await import('@/lib/thinking-helpers');
           await prisma.message.create({
             data: {
               projectId,
-              content: errorMessage,
+              content: ERROR_MESSAGES[errorType](error.message),
               role: "ASSISTANT",
               type: "ERROR",
             },
@@ -83,15 +86,26 @@ export const codeAgentFunction = inngest.createFunction(
     });
 
     const sandboxId = await step.run("get-sandbox-id",async ()=>{
-      await addThinkingStep(
-        thinkingMessage.id,
-        "Setting up environment",
-        `Creating isolated development environment for: "${event.data.value}"`
-      );
-      const sandbox= await Sandbox.create("vibe-nextjs-soumyadip-888");
-      // Complete immediately after sandbox is created
-      await completeCurrentThinkingStep(thinkingMessage.id);
-      return sandbox.sandboxId;
+      try {
+        await addThinkingStep(
+          thinkingMessage.id,
+          "Setting up environment",
+          `Creating isolated development environment for: "${event.data.value}"`
+        );
+        const sandbox= await Sandbox.create("vibe-nextjs-soumyadip-888");
+        // Complete immediately after sandbox is created
+        await completeCurrentThinkingStep(thinkingMessage.id);
+        return sandbox.sandboxId;
+      } catch (error) {
+        // Cleanup with specific sandbox error type
+        await cleanupThinkingMessageWithError(
+          thinkingMessage.id,
+          event.data.projectId,
+          ThinkingErrorType.SANDBOX_SETUP,
+          error instanceof Error ? error.message : undefined
+        );
+        throw error; // Re-throw to stop execution
+      }
     });
 
     await step.run("start-analysis", async () => {
@@ -332,10 +346,13 @@ export const codeAgentFunction = inngest.createFunction(
       });
 
       await step.run("save-error", async () => {
+        const { ERROR_MESSAGES } = await import('@/lib/thinking-helpers');
         return await prisma.message.create({
           data: {
             projectId: event.data.projectId,
-            content: `An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`,
+            content: ERROR_MESSAGES[ThinkingErrorType.AGENT_ERROR](
+              error instanceof Error ? error.message : "Unknown error"
+            ),
             role: "ASSISTANT",
             type: "ERROR",
           },

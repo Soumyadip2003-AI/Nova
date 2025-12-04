@@ -4,7 +4,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import {z} from "zod";
 import{toast} from "sonner";
 import{useState} from "react";
-import{ArrowUpIcon, Loader2Icon} from "lucide-react";
+import{ArrowUpIcon, Loader2Icon, Square} from "lucide-react";
 import{useMutation,useQueryClient } from "@tanstack/react-query";
 import {cn} from "@/lib/utils";
 import{useTRPC} from "@/trpc/client";
@@ -14,6 +14,8 @@ import{Form, FormField } from "@/components/ui/form";
 
 interface Props{
     projectId: string;
+    isThinking?: boolean;
+    onCancelThinking?: () => void;
 };
 const formSchema = z.object({
     value: z.string()
@@ -21,10 +23,12 @@ const formSchema = z.object({
      .max(10000, { message: "Value is too long" }),
 })
 
-export const MessageForm = ({projectId}: Props) => {
-    
+export const MessageForm = ({projectId, isThinking = false, onCancelThinking}: Props) => {
+
     const trpc = useTRPC();
     const queryClient=useQueryClient();
+    const [isCancelling, setIsCancelling] = useState(false);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -32,7 +36,7 @@ export const MessageForm = ({projectId}: Props) => {
         },
     });
     const createMessage=useMutation(trpc.messages.create.mutationOptions({
-        onSuccess:(data)=>{
+        onSuccess:()=>{
             form.reset();
             queryClient.invalidateQueries(
                 trpc.messages.getMany.queryOptions({
@@ -49,14 +53,40 @@ export const MessageForm = ({projectId}: Props) => {
 
     const onSubmit=async(values: z.infer<typeof formSchema>)=>{
         await createMessage.mutateAsync({
-            
+
                 value:values.value,
                 projectId,
-            
+
         });
     };
+
+    const handleStopThinking = async () => {
+        if (isCancelling || !onCancelThinking) return;
+
+        setIsCancelling(true);
+        try {
+            const response = await fetch('/api/cancel-thinking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId })
+            });
+
+            if (response.ok) {
+                onCancelThinking();
+                toast.success("Task cancelled");
+            } else {
+                toast.error("Failed to cancel task");
+            }
+        } catch (error) {
+            console.error('Error cancelling:', error);
+            toast.error("Failed to cancel task");
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
     const isPending=createMessage.isPending;
-    const isButtonDisabeled=isPending||!form.formState.isValid;;
+    const isButtonDisabeled=(isPending||!form.formState.isValid) && !isThinking;
     const [isFocused, setIsFocused] = useState(false);
     const showUsage= false;
 
@@ -79,15 +109,19 @@ export const MessageForm = ({projectId}: Props) => {
                 minRows={2}
                 maxRows={8}
                 {...field}
-                disabled={isPending}
+                disabled={isPending || isThinking}
                 className="pt-4 resize-none border-none w-full outline-none bg-transparent"
                 onFocus={()=>setIsFocused(true)}
                 onBlur={()=>setIsFocused(false)}
-                placeholder="What would you like to build"
+                placeholder={isThinking ? "Generating response..." : "What would you like to build"}
                 onKeyDown={(e)=>{
                     if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){
                         e.preventDefault();
-                        form.handleSubmit(onSubmit)(e);
+                        if (isThinking) {
+                            handleStopThinking();
+                        } else {
+                            form.handleSubmit(onSubmit)(e);
+                        }
                     }
                 }}
                 />
@@ -99,21 +133,42 @@ export const MessageForm = ({projectId}: Props) => {
 
                         <span>&#8984;</span>Enter
                     </kbd>
-                    &nbsp;to submit
+                    &nbsp;to {isThinking ? "cancel" : "submit"}
 
                 </div>
-                <Button 
-                disabled={isButtonDisabeled}
-                className={cn(
-                    "size-8 rounded-full",
-                    isButtonDisabeled &&"bg-muted-foreground border"
-                )}>
-                    {isPending ? (
-                        <Loader2Icon className="size-4 animate-spin"/>
-                        ) : (
-                        <ArrowUpIcon/>
+                {isThinking ? (
+                    <Button
+                        type="button"
+                        onClick={handleStopThinking}
+                        disabled={isCancelling}
+                        className={cn(
+                            "size-8 rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all",
+                            isCancelling && "opacity-50"
                         )}
-                </Button>
+                        title="Stop generation"
+                    >
+                        {isCancelling ? (
+                            <Loader2Icon className="size-4 animate-spin"/>
+                        ) : (
+                            <Square className="size-4" fill="currentColor"/>
+                        )}
+                    </Button>
+                ) : (
+                    <Button
+                        type="submit"
+                        disabled={isButtonDisabeled}
+                        className={cn(
+                            "size-8 rounded-full",
+                            isButtonDisabeled &&"bg-muted-foreground border"
+                        )}
+                    >
+                        {isPending ? (
+                            <Loader2Icon className="size-4 animate-spin"/>
+                        ) : (
+                            <ArrowUpIcon/>
+                        )}
+                    </Button>
+                )}
 
             </div>
             </form>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { cleanupThinkingMessageWithError } from "@/lib/thinking-helpers";
+import { cleanupThinkingMessageWithError, ThinkingErrorType } from "@/lib/thinking-helpers";
 
 /**
  * Manual cleanup endpoint for orphaned thinking messages
@@ -10,13 +10,13 @@ import { cleanupThinkingMessageWithError } from "@/lib/thinking-helpers";
  */
 export async function GET() {
   try {
-    const tenMinutesAgo = new Date(Date.now() - 600000); // 10 minutes (consistent with cron job)
+    const fifteenMinutesAgo = new Date(Date.now() - 900000); // 15 minutes (consistent with cron job)
 
     // Find orphaned thinking messages
     const orphanedMessages = await prisma.message.findMany({
       where: {
         type: "THINKING",
-        createAt: { lt: tenMinutesAgo }
+        createAt: { lt: fifteenMinutesAgo }
       },
       select: {
         id: true,
@@ -39,7 +39,7 @@ export async function GET() {
         cleanupThinkingMessageWithError(
           msg.id,
           msg.projectId,
-          "The task took too long and was terminated. Please try again."
+          ThinkingErrorType.AGENT_TIMEOUT
         )
       )
     );

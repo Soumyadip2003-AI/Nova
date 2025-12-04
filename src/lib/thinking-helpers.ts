@@ -1,11 +1,36 @@
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
+// Error types for specific failure scenarios
+export enum ThinkingErrorType {
+    SANDBOX_SETUP = "SANDBOX_SETUP",
+    AGENT_TIMEOUT = "AGENT_TIMEOUT",
+    AGENT_ERROR = "AGENT_ERROR",
+    CANCELLED = "CANCELLED",
+    UNKNOWN = "UNKNOWN"
+}
+
+// Error messages mapped to error types
+export const ERROR_MESSAGES: Record<ThinkingErrorType, (details?: string) => string> = {
+    [ThinkingErrorType.SANDBOX_SETUP]: () =>
+        "Failed to set up the development environment. Please try again.",
+    [ThinkingErrorType.AGENT_TIMEOUT]: () =>
+        "The task took too long to complete. Try breaking it into smaller tasks or simplifying your request.",
+    [ThinkingErrorType.AGENT_ERROR]: (details) =>
+        details ? `An error occurred: ${details}` : "An error occurred while processing your request. Please try again.",
+    [ThinkingErrorType.CANCELLED]: () =>
+        "The task was cancelled.",
+    [ThinkingErrorType.UNKNOWN]: () =>
+        "Something went wrong. Please try again."
+};
+
 // Zod schemas for runtime validation
 export const ThinkingStepSchema = z.object({
     title: z.string().min(1, "Step title cannot be empty"),
     content: z.string(),
-    completed: z.boolean()
+    completed: z.boolean(),
+    startTime: z.number().optional(), // Timestamp when step started
+    endTime: z.number().optional() // Timestamp when step completed
 });
 
 export const ThinkingDataSchema = z.object({
@@ -93,7 +118,8 @@ export async function addThinkingStep(
     thinking.steps.push({
         title,
         content,
-        completed: false
+        completed: false,
+        startTime: Date.now() // Track when step starts
     });
 
     return await prisma.message.update({
@@ -129,7 +155,17 @@ export async function completeCurrentThinkingStep(messageId: string) {
     // Find the first incomplete step and mark it as completed
     const currentStepIndex = thinking.steps.findIndex(step => !step.completed);
     if (currentStepIndex !== -1) {
-        thinking.steps[currentStepIndex].completed = true;
+        const step = thinking.steps[currentStepIndex];
+        step.completed = true;
+        step.endTime = Date.now();
+
+        // Log telemetry for step completion
+        const duration = step.startTime ? step.endTime - step.startTime : 0;
+        console.log(`[Thinking Telemetry] Step completed:`, {
+            step: step.title,
+            durationMs: duration,
+            durationSeconds: (duration / 1000).toFixed(2)
+        });
     }
 
     return await prisma.message.update({
@@ -180,10 +216,45 @@ export async function updateCurrentThinkingStepContent(
 
 /**
  * Deletes the thinking message (call this when AI finishes generating)
+ * Logs aggregate telemetry before deletion
  * @param messageId - The thinking message ID
  */
 export async function deleteThinkingMessage(messageId: string) {
     try {
+        // Fetch the message to log telemetry before deletion
+        const message = await prisma.message.findUnique({
+            where: { id: messageId }
+        });
+
+        if (message && message.type === "THINKING") {
+            const thinking = message.thinking as any as ThinkingData;
+            if (isThinkingData(thinking)) {
+                // Calculate aggregate metrics
+                const totalDuration = thinking.steps.reduce((acc, step) => {
+                    if (step.startTime && step.endTime) {
+                        return acc + (step.endTime - step.startTime);
+                    }
+                    return acc;
+                }, 0);
+
+                const completedSteps = thinking.steps.filter(s => s.completed).length;
+                const stepMetrics = thinking.steps.map(step => ({
+                    step: step.title,
+                    completed: step.completed,
+                    durationMs: step.startTime && step.endTime ? step.endTime - step.startTime : null
+                }));
+
+                console.log(`[Thinking Telemetry] Process completed:`, {
+                    messageId,
+                    totalSteps: thinking.steps.length,
+                    completedSteps,
+                    totalDurationMs: totalDuration,
+                    totalDurationSeconds: (totalDuration / 1000).toFixed(2),
+                    stepBreakdown: stepMetrics
+                });
+            }
+        }
+
         return await prisma.message.delete({
             where: { id: messageId }
         });
@@ -198,15 +269,55 @@ export async function deleteThinkingMessage(messageId: string) {
  * Used across all cleanup paths (onFailure, scheduled cleanup, manual API)
  * @param messageId - The thinking message ID to delete
  * @param projectId - The project ID for the error message
- * @param errorMessage - The error message content to display
+ * @param errorType - The type of error that occurred
+ * @param errorDetails - Optional additional details about the error
  * @returns Object with success status and any error
  */
 export async function cleanupThinkingMessageWithError(
     messageId: string,
     projectId: string,
-    errorMessage: string = "Something went wrong. Please try again."
+    errorType: ThinkingErrorType = ThinkingErrorType.UNKNOWN,
+    errorDetails?: string
 ) {
     try {
+        // Fetch the message to log telemetry before deletion
+        const message = await prisma.message.findUnique({
+            where: { id: messageId }
+        });
+
+        // Log telemetry for failed thinking processes
+        if (message && message.type === "THINKING") {
+            const thinking = message.thinking as any as ThinkingData;
+            if (isThinkingData(thinking)) {
+                const completedSteps = thinking.steps.filter(s => s.completed);
+                const currentStep = thinking.steps.find(s => !s.completed);
+                const totalDuration = thinking.steps.reduce((acc, step) => {
+                    if (step.startTime && step.endTime) {
+                        return acc + (step.endTime - step.startTime);
+                    }
+                    return acc;
+                }, 0);
+
+                console.log(`[Thinking Telemetry] Process failed:`, {
+                    messageId,
+                    errorType,
+                    errorDetails,
+                    totalSteps: thinking.steps.length,
+                    completedSteps: completedSteps.length,
+                    failedAtStep: currentStep?.title,
+                    totalDurationMs: totalDuration,
+                    stepBreakdown: thinking.steps.map(step => ({
+                        step: step.title,
+                        completed: step.completed,
+                        durationMs: step.startTime && step.endTime ? step.endTime - step.startTime : null
+                    }))
+                });
+            }
+        }
+
+        // Get the appropriate error message for the error type
+        const errorMessage = ERROR_MESSAGES[errorType](errorDetails);
+
         // Use transaction to ensure atomicity - either both operations succeed or both fail
         await prisma.$transaction([
             prisma.message.delete({
@@ -222,12 +333,13 @@ export async function cleanupThinkingMessageWithError(
             }),
         ]);
 
-        return { success: true, messageId, projectId };
+        return { success: true, messageId, projectId, errorType };
     } catch (error) {
         console.error(`Failed to cleanup thinking message ${messageId}:`, error);
 
         // Try to at least create the error message for user feedback
         try {
+            const errorMessage = ERROR_MESSAGES[errorType](errorDetails);
             await prisma.message.create({
                 data: {
                     projectId,
@@ -240,7 +352,7 @@ export async function cleanupThinkingMessageWithError(
             console.error(`Failed to create error message:`, createError);
         }
 
-        return { success: false, error, messageId, projectId };
+        return { success: false, error, messageId, projectId, errorType };
     }
 }
 
