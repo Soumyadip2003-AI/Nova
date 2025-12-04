@@ -14,25 +14,33 @@ interface Props {
 export const MessagesContainer = ({projectId, activeFragment,setActiveFragment}: Props) => {
     const bottomRef = useRef<HTMLDivElement>(null);
     const trpc = useTRPC();
+
+    // First, fetch messages to check if there's active thinking
     const { data: messages } = useSuspenseQuery({
         ...trpc.messages.getMany.queryOptions({
             projectId: projectId,
         }),
-        refetchInterval: 5000,
+        // Adaptive polling: 1s when thinking is active, 5s otherwise
+        // This provides real-time updates without artificial backend delays
+        refetchInterval: (query) => {
+            const data = query.state.data;
+            if (!data) return 5000;
+
+            // Check if there's any thinking message or recent user message
+            const hasThinking = data.some((msg) => msg.type === "THINKING");
+            const lastMessage = data[data.length - 1];
+            const isLastMessageUser = lastMessage?.role === "USER";
+
+            // Poll every 1 second when:
+            // - There's an active thinking message, OR
+            // - Last message is from user (expecting AI response)
+            return (hasThinking || isLastMessageUser) ? 1000 : 5000;
+        },
     });
-   // useEffect(() => {
-   //     const lastAssistantMessageWithFragment=messages.findLast((
-    //        message)=>message.role === "ASSISTANT" && !!message.fragment);
-   //         if(lastAssistantMessageWithFragment ){
-    //            setActiveFragment(lastAssistantMessageWithFragment.fragment);
-   //             
-    //        }
-        
-   // }, [messages,setActiveFragment]);
 
     useEffect(()=>{
         bottomRef.current?.scrollIntoView();
-       
+
     }, [messages.length]);
 
     const lastMessage = messages[messages.length-1];
