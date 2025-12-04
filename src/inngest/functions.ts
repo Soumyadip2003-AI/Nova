@@ -9,7 +9,8 @@ import {
   createThinkingMessage,
   addThinkingStep,
   completeCurrentThinkingStep,
-  deleteThinkingMessage
+  deleteThinkingMessage,
+  cleanupThinkingMessageWithError
 } from '@/lib/thinking-helpers';
 
 interface AgentState{
@@ -27,27 +28,45 @@ export const codeAgentFunction = inngest.createFunction(
 
       // Clean up thinking message on cancellation or failure
       await step.run("cleanup-on-failure", async () => {
+        // In onFailure, event structure is nested: event.data.event.data contains original data
+        const originalEvent = event.data?.event;
+        const projectId = originalEvent?.data?.projectId;
+
+        console.log("Cleaning up after failure:", { projectId, error: error.message });
+
+        if (!projectId) {
+          console.error("No projectId found in event data for cleanup");
+          return;
+        }
+
+        // Determine appropriate error message based on error type
+        const errorMessage = error.message?.includes("cancel") || error.message?.includes("Cancel")
+          ? "Task was cancelled."
+          : "The task encountered an error. Please try again.";
+
+        // Search for the thinking message to clean up
         const thinkingMessages = await prisma.message.findMany({
           where: {
-            projectId: event.data.event.data.projectId,
+            projectId,
             type: "THINKING"
           },
           orderBy: { createAt: 'desc' },
           take: 1
         });
 
-        console.log("Found thinking messages:", thinkingMessages.length);
-
         if (thinkingMessages.length > 0) {
-          await deleteThinkingMessage(thinkingMessages[0].id);
-
-          // Add error message to show cancellation
+          await cleanupThinkingMessageWithError(
+            thinkingMessages[0].id,
+            projectId,
+            errorMessage
+          );
+        } else {
+          // Always create error message even if no thinking message found
+          console.warn("No thinking message found, creating error message anyway");
           await prisma.message.create({
             data: {
-              projectId: event.data.event.data.projectId,
-              content: error.message?.includes("cancel") || error.message?.includes("Cancel")
-                ? "Task was cancelled."
-                : `Something went wrong. Please try again.`,
+              projectId,
+              content: errorMessage,
               role: "ASSISTANT",
               type: "ERROR",
             },

@@ -11,16 +11,18 @@ interface Props{
 export function FragmentWeb({data}: Props){
 
     const[fragmentKey, setFragmentKey]= useState(0);
-    const[copied,setcopied]=useState(false);
+    const[copied, setCopied]=useState(false);
+    const[loadError, setLoadError]=useState(false);
 
     const onRefresh =() =>{
         setFragmentKey((prev)=> prev +1);
+        setLoadError(false); // Reset error state on refresh
     };
 
     const handleCopy=()=>{
         navigator.clipboard.writeText(data.sandboxUrl);
-        setcopied(true);
-        setTimeout(()=> setcopied(false),2000)
+        setCopied(true);
+        setTimeout(()=> setCopied(false),2000)
     };
     return(
         <div className="flex flex-col h-full w-full">
@@ -30,7 +32,7 @@ export function FragmentWeb({data}: Props){
                     <RefreshCcwIcon/>
                 </Button>
                 </Hint>
-                <Hint text="Click to copy" side="bottom">
+                <Hint text={copied ? "Copied!" : "Click to copy"} side="bottom">
                 <Button size="sm" variant="outline" onClick={handleCopy} disabled={!data.sandboxUrl || copied} className="flex-1 justify-start text-start font-normal">
                    <span className="truncate">
                     {data.sandboxUrl}
@@ -53,15 +55,28 @@ export function FragmentWeb({data}: Props){
                 </Hint>
 
             </div>
-            <iframe
-            key={fragmentKey}
-            className="h-full w-full"
-            sandbox="allow-forms allow-scripts allow-same-origin"
-            loading="lazy"
-            src={data.sandboxUrl}
-            />
+            {loadError ? (
+                <div className="flex flex-col items-center justify-center h-full w-full bg-muted text-muted-foreground p-8">
+                    <p className="text-lg font-medium mb-2">Failed to load preview</p>
+                    <p className="text-sm mb-4">The sandbox environment could not be loaded</p>
+                    <Button onClick={onRefresh} variant="outline" size="sm">
+                        <RefreshCcwIcon className="mr-2 h-4 w-4" />
+                        Try Again
+                    </Button>
+                </div>
+            ) : (
+                <iframe
+                key={fragmentKey}
+                className="h-full w-full"
+                sandbox="allow-forms allow-scripts allow-same-origin"
+                loading="lazy"
+                src={data.sandboxUrl}
+                onError={() => setLoadError(true)}
+                title="Code preview"
+                />
+            )}
 
         </div>
     )
-    
+
 };

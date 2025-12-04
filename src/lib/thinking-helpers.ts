@@ -194,6 +194,57 @@ export async function deleteThinkingMessage(messageId: string) {
 }
 
 /**
+ * Unified cleanup function that deletes a thinking message and creates an error message
+ * Used across all cleanup paths (onFailure, scheduled cleanup, manual API)
+ * @param messageId - The thinking message ID to delete
+ * @param projectId - The project ID for the error message
+ * @param errorMessage - The error message content to display
+ * @returns Object with success status and any error
+ */
+export async function cleanupThinkingMessageWithError(
+    messageId: string,
+    projectId: string,
+    errorMessage: string = "Something went wrong. Please try again."
+) {
+    try {
+        // Use transaction to ensure atomicity - either both operations succeed or both fail
+        await prisma.$transaction([
+            prisma.message.delete({
+                where: { id: messageId }
+            }),
+            prisma.message.create({
+                data: {
+                    projectId,
+                    content: errorMessage,
+                    role: "ASSISTANT",
+                    type: "ERROR",
+                },
+            }),
+        ]);
+
+        return { success: true, messageId, projectId };
+    } catch (error) {
+        console.error(`Failed to cleanup thinking message ${messageId}:`, error);
+
+        // Try to at least create the error message for user feedback
+        try {
+            await prisma.message.create({
+                data: {
+                    projectId,
+                    content: errorMessage,
+                    role: "ASSISTANT",
+                    type: "ERROR",
+                },
+            });
+        } catch (createError) {
+            console.error(`Failed to create error message:`, createError);
+        }
+
+        return { success: false, error, messageId, projectId };
+    }
+}
+
+/**
  * Get statistics about thinking messages for monitoring
  * @returns Stats about thinking messages
  */
