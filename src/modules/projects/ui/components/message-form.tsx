@@ -3,7 +3,7 @@ import {zodResolver} from "@hookform/resolvers/zod";
 import TextareaAutosize from "react-textarea-autosize";
 import {z} from "zod";
 import{toast} from "sonner";
-import{useState} from "react";
+import{useState, useEffect, useCallback} from "react";
 import{ArrowUpIcon, Loader2Icon, Square} from "lucide-react";
 import{useMutation,useQueryClient } from "@tanstack/react-query";
 import {cn} from "@/lib/utils";
@@ -60,7 +60,7 @@ export const MessageForm = ({projectId, isThinking = false, onCancelThinking}: P
         });
     };
 
-    const handleStopThinking = async () => {
+    const handleStopThinking = useCallback(async () => {
         if (isCancelling || !onCancelThinking) return;
 
         setIsCancelling(true);
@@ -83,23 +83,54 @@ export const MessageForm = ({projectId, isThinking = false, onCancelThinking}: P
         } finally {
             setIsCancelling(false);
         }
-    };
+    }, [isCancelling, onCancelThinking, projectId]);
 
     const isPending=createMessage.isPending;
     const isButtonDisabeled=(isPending||!form.formState.isValid) && !isThinking;
     const [isFocused, setIsFocused] = useState(false);
     const showUsage= false;
 
+    // Global keyboard shortcut for cancel (works anywhere on the page)
+    useEffect(() => {
+        if (!isThinking) return;
+
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleStopThinking();
+            }
+        };
+
+        document.addEventListener('keydown', handleGlobalKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, [isThinking, handleStopThinking]); // eslint-disable-line react-hooks/exhaustive-deps
+
     return(
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}
+            <form
+            onSubmit={form.handleSubmit(onSubmit)}
             className={cn(
                 "relative border p-4 pt-1 rounded-xl bg-sidebar dark:bg-sidebar transition-all",
                 isFocused && "shadow-xs",
                 showUsage && "rounded-t-none",
 
             )}
-            
+            onKeyDown={(e) => {
+                // Handle keyboard shortcuts at form level to ensure they work
+                if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (isThinking) {
+                        handleStopThinking();
+                    } else {
+                        form.handleSubmit(onSubmit)(e);
+                    }
+                }
+            }}
             >
             <FormField
             control={form.control}
@@ -109,21 +140,15 @@ export const MessageForm = ({projectId, isThinking = false, onCancelThinking}: P
                 minRows={2}
                 maxRows={8}
                 {...field}
-                disabled={isPending || isThinking}
-                className="pt-4 resize-none border-none w-full outline-none bg-transparent"
+                disabled={isPending}
+                readOnly={isThinking}
+                className={cn(
+                    "pt-4 resize-none border-none w-full outline-none bg-transparent",
+                    isThinking && "cursor-not-allowed opacity-60"
+                )}
                 onFocus={()=>setIsFocused(true)}
                 onBlur={()=>setIsFocused(false)}
                 placeholder={isThinking ? "Generating response..." : "What would you like to build"}
-                onKeyDown={(e)=>{
-                    if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){
-                        e.preventDefault();
-                        if (isThinking) {
-                            handleStopThinking();
-                        } else {
-                            form.handleSubmit(onSubmit)(e);
-                        }
-                    }
-                }}
                 />
             )}
             />
