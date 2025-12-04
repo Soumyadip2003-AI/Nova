@@ -102,6 +102,7 @@ const StepIcon = ({ completed, isCurrent }: { completed: boolean; isCurrent: boo
 const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
     const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
     const [visibleSteps, setVisibleSteps] = useState<number>(0);
+    const [isCollapsed, setIsCollapsed] = useState(true); // Collapsed by default
 
     const toggleStep = (index: number) => {
         setExpandedSteps((prev) => {
@@ -113,6 +114,10 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
             }
             return newSet;
         });
+    };
+
+    const toggleCollapse = () => {
+        setIsCollapsed(!isCollapsed);
     };
 
     // Progressive reveal animation
@@ -155,8 +160,11 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
 
         return (
             <div className="flex flex-col gap-3 p-5 rounded-2xl border bg-gradient-to-br from-muted/50 to-muted/30 backdrop-blur-sm shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Header */}
-                <div className="flex items-center gap-3">
+                {/* Header - Clickable to toggle collapse */}
+                <button
+                    onClick={toggleCollapse}
+                    className="flex items-center gap-3 w-full text-left hover:bg-primary/5 -m-2 p-2 rounded-lg transition-colors"
+                >
                     {allCompleted ? (
                         <div className="relative h-6 w-6 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shrink-0 animate-in zoom-in duration-500">
                             <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />
@@ -193,39 +201,48 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                             </div>
                         )}
                     </div>
-                </div>
+                    <ChevronRight
+                        className={cn(
+                            "h-5 w-5 text-muted-foreground transition-transform shrink-0 duration-300",
+                            !isCollapsed && 'rotate-90'
+                        )}
+                    />
+                </button>
 
-                {/* Progress indicator with weighted segments */}
-                {!allCompleted && thinking.steps.length > 0 && (
-                    <div className="flex items-center gap-1.5">
-                        {thinking.steps.map((step, index) => {
-                            const stepWeight = STEP_WEIGHTS[step.title] || 25;
-                            const widthPercentage = (stepWeight / totalWeight) * 100;
+                {/* Collapsible content */}
+                {!isCollapsed && (
+                    <>
+                        {/* Progress indicator with weighted segments */}
+                        {!allCompleted && thinking.steps.length > 0 && (
+                            <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {thinking.steps.map((step, index) => {
+                                    const stepWeight = STEP_WEIGHTS[step.title] || 25;
+                                    const widthPercentage = (stepWeight / totalWeight) * 100;
 
-                            return (
-                                <div
-                                    key={index}
-                                    className={cn(
-                                        "h-1 rounded-full transition-all duration-500",
-                                        step.completed
-                                            ? "bg-gradient-to-r from-primary to-primary/80"
-                                            : index === currentStepIndex
-                                            ? "bg-primary/30 relative overflow-hidden"
-                                            : "bg-border"
-                                    )}
-                                    style={{ width: `${widthPercentage}%` }}
-                                >
-                                    {index === currentStepIndex && (
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-shimmer" />
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={cn(
+                                                "h-1 rounded-full transition-all duration-500",
+                                                step.completed
+                                                    ? "bg-gradient-to-r from-primary to-primary/80"
+                                                    : index === currentStepIndex
+                                                    ? "bg-primary/30 relative overflow-hidden"
+                                                    : "bg-border"
+                                            )}
+                                            style={{ width: `${widthPercentage}%` }}
+                                        >
+                                            {index === currentStepIndex && (
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-shimmer" />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
 
-                {/* Steps */}
-                <div className="space-y-2">
+                        {/* Steps */}
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     {thinking.steps.slice(0, visibleSteps).map((step, index) => {
                         const isCurrent = index === currentStepIndex;
                         const isExpanded = expandedSteps.has(index);
@@ -298,7 +315,9 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                             </div>
                         );
                     })}
-                </div>
+                        </div>
+                    </>
+                )}
             </div>
         );
     }
