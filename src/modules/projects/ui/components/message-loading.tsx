@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { ChevronRight, Sparkles, Brain, Zap, Check, Loader2 } from "lucide-react";
+import { ChevronRight, Sparkles, Brain, Zap, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ThinkingStep {
@@ -26,6 +26,14 @@ const TypingIndicator = () => {
             <div className="w-2 h-2 rounded-full bg-primary animate-bounce" />
         </div>
     );
+};
+
+// Step weights for realistic progress calculation
+const STEP_WEIGHTS: Record<string, number> = {
+    "Setting up environment": 15,
+    "Planning implementation": 20,
+    "Writing code": 50,  // Longest step - agent iterations
+    "Preparing preview": 15
 };
 
 // Progress bar for active step (like Claude)
@@ -131,6 +139,20 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
         const allCompleted = currentStepIndex === -1;
         const completedCount = thinking.steps.filter(s => s.completed).length;
 
+        // Calculate weighted progress
+        const totalWeight = thinking.steps.reduce((sum, step) => {
+            return sum + (STEP_WEIGHTS[step.title] || 25); // Default weight if not found
+        }, 0);
+
+        const completedWeight = thinking.steps.reduce((sum, step) => {
+            if (step.completed) {
+                return sum + (STEP_WEIGHTS[step.title] || 25);
+            }
+            return sum;
+        }, 0);
+
+        const weightedProgress = Math.round((completedWeight / totalWeight) * 100);
+
         return (
             <div className="flex flex-col gap-3 p-5 rounded-2xl border bg-gradient-to-br from-muted/50 to-muted/30 backdrop-blur-sm shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header */}
@@ -159,6 +181,8 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                             <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                                 <span>Step {completedCount + 1} of {thinking.steps.length}</span>
                                 <span className="text-primary">•</span>
+                                <span className="font-medium text-primary">{weightedProgress}%</span>
+                                <span className="text-primary">•</span>
                                 <span className="animate-pulse">Processing...</span>
                             </div>
                         )}
@@ -171,26 +195,32 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                     </div>
                 </div>
 
-                {/* Progress indicator */}
+                {/* Progress indicator with weighted segments */}
                 {!allCompleted && thinking.steps.length > 0 && (
                     <div className="flex items-center gap-1.5">
-                        {thinking.steps.map((step, index) => (
-                            <div
-                                key={index}
-                                className={cn(
-                                    "h-1 flex-1 rounded-full transition-all duration-500",
-                                    step.completed
-                                        ? "bg-gradient-to-r from-primary to-primary/80"
-                                        : index === currentStepIndex
-                                        ? "bg-primary/30 relative overflow-hidden"
-                                        : "bg-border"
-                                )}
-                            >
-                                {index === currentStepIndex && (
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-shimmer" />
-                                )}
-                            </div>
-                        ))}
+                        {thinking.steps.map((step, index) => {
+                            const stepWeight = STEP_WEIGHTS[step.title] || 25;
+                            const widthPercentage = (stepWeight / totalWeight) * 100;
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={cn(
+                                        "h-1 rounded-full transition-all duration-500",
+                                        step.completed
+                                            ? "bg-gradient-to-r from-primary to-primary/80"
+                                            : index === currentStepIndex
+                                            ? "bg-primary/30 relative overflow-hidden"
+                                            : "bg-border"
+                                    )}
+                                    style={{ width: `${widthPercentage}%` }}
+                                >
+                                    {index === currentStepIndex && (
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-shimmer" />
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
 

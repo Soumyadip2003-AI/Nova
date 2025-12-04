@@ -1,15 +1,15 @@
 import { inngest } from "./client";
 import { prisma } from "@/lib/db";
-import { cleanupThinkingMessageWithError } from "@/lib/thinking-helpers";
+import { cleanupThinkingMessageWithError, ThinkingErrorType } from "@/lib/thinking-helpers";
 
 /**
  * Cleanup cron job that runs every 5 minutes to delete orphaned thinking messages
  *
  * A thinking message is considered orphaned if:
- * - It's been in THINKING state for more than 10 minutes
+ * - It's been in THINKING state for more than 15 minutes
  * - This indicates the agent crashed, failed, or was cancelled without cleanup
  *
- * Note: 10 minutes allows for complex operations with up to 15 agent iterations
+ * Note: 15 minutes allows for complex operations with up to 15 agent iterations with buffer time
  */
 export const cleanupOrphanedThinkingMessages = inngest.createFunction(
   {
@@ -19,13 +19,13 @@ export const cleanupOrphanedThinkingMessages = inngest.createFunction(
   { cron: "*/5 * * * *" }, // Run every 5 minutes
   async ({ step }) => {
     const result = await step.run("delete-orphaned-thinking", async () => {
-      const tenMinutesAgo = new Date(Date.now() - 600000); // 10 minutes (increased from 5)
+      const fifteenMinutesAgo = new Date(Date.now() - 900000); // 15 minutes (increased from 10)
 
       // Find orphaned thinking messages
       const orphanedMessages = await prisma.message.findMany({
         where: {
           type: "THINKING",
-          createAt: { lt: tenMinutesAgo }
+          createAt: { lt: fifteenMinutesAgo }
         },
         select: {
           id: true,
@@ -57,7 +57,7 @@ export const cleanupOrphanedThinkingMessages = inngest.createFunction(
           cleanupThinkingMessageWithError(
             orphaned.id,
             orphaned.projectId,
-            "The task took too long and was terminated. Please try again."
+            ThinkingErrorType.AGENT_TIMEOUT
           )
         )
       );
