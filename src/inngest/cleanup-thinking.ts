@@ -2,27 +2,27 @@ import { inngest } from "./client";
 import { prisma } from "@/lib/db";
 
 /**
- * Cleanup cron job that runs every 30 minutes to delete orphaned thinking messages
+ * Cleanup cron job that runs every 5 minutes to delete orphaned thinking messages
  *
  * A thinking message is considered orphaned if:
- * - It's been in THINKING state for more than 1 hour
- * - This indicates the agent crashed or failed without cleanup
+ * - It's been in THINKING state for more than 5 minutes
+ * - This indicates the agent crashed, failed, or was cancelled without cleanup
  */
 export const cleanupOrphanedThinkingMessages = inngest.createFunction(
   {
     id: "cleanup-orphaned-thinking",
     name: "Cleanup Orphaned Thinking Messages"
   },
-  { cron: "*/30 * * * *" }, // Run every 30 minutes
+  { cron: "*/5 * * * *" }, // Run every 5 minutes
   async ({ step }) => {
     const result = await step.run("delete-orphaned-thinking", async () => {
-      const oneHourAgo = new Date(Date.now() - 3600000); // 1 hour
+      const fiveMinutesAgo = new Date(Date.now() - 300000); // 5 minutes
 
       // Find orphaned thinking messages
       const orphanedMessages = await prisma.message.findMany({
         where: {
           type: "THINKING",
-          createAt: { lt: oneHourAgo }
+          createAt: { lt: fiveMinutesAgo }
         },
         select: {
           id: true,
@@ -48,17 +48,27 @@ export const cleanupOrphanedThinkingMessages = inngest.createFunction(
         }))
       );
 
-      // Delete orphaned messages
-      const deleteResult = await prisma.message.deleteMany({
-        where: {
-          type: "THINKING",
-          createAt: { lt: oneHourAgo }
-        }
-      });
+      // Delete orphaned messages and create error messages
+      for (const orphaned of orphanedMessages) {
+        // Delete the thinking message
+        await prisma.message.delete({
+          where: { id: orphaned.id }
+        });
+
+        // Create error message to show in UI
+        await prisma.message.create({
+          data: {
+            projectId: orphaned.projectId,
+            content: "Something went wrong. Please try again.",
+            role: "ASSISTANT",
+            type: "ERROR",
+          },
+        });
+      }
 
       return {
-        deleted: deleteResult.count,
-        message: `Successfully deleted ${deleteResult.count} orphaned thinking messages`,
+        deleted: orphanedMessages.length,
+        message: `Successfully deleted ${orphanedMessages.length} orphaned thinking messages`,
         orphanedIds: orphanedMessages.map(m => m.id)
       };
     });
