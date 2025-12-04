@@ -20,7 +20,42 @@ interface AgentState{
 
 
 export const codeAgentFunction = inngest.createFunction(
-  { id: "code-agent" },
+  {
+    id: "code-agent",
+    onFailure: async ({ error, event, step }) => {
+      console.log("onFailure triggered:", error);
+
+      // Clean up thinking message on cancellation or failure
+      await step.run("cleanup-on-failure", async () => {
+        const thinkingMessages = await prisma.message.findMany({
+          where: {
+            projectId: event.data.event.data.projectId,
+            type: "THINKING"
+          },
+          orderBy: { createAt: 'desc' },
+          take: 1
+        });
+
+        console.log("Found thinking messages:", thinkingMessages.length);
+
+        if (thinkingMessages.length > 0) {
+          await deleteThinkingMessage(thinkingMessages[0].id);
+
+          // Add error message to show cancellation
+          await prisma.message.create({
+            data: {
+              projectId: event.data.event.data.projectId,
+              content: error.message?.includes("cancel") || error.message?.includes("Cancel")
+                ? "Task was cancelled."
+                : `Something went wrong. Please try again.`,
+              role: "ASSISTANT",
+              type: "ERROR",
+            },
+          });
+        }
+      });
+    }
+  },
   { event: "code-agent/run" },
   async ({ event , step}) => {
     // Create thinking message to track progress

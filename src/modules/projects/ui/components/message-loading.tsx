@@ -64,11 +64,12 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                     </div>
                 </div>
 
-                {hasAnyCompleted && (
+                {(hasAnyCompleted || currentStepIndex >= 0) && (
                     <div className="space-y-1.5">
                         {thinking.steps.map((step, index) => {
                             const isCurrent = index === currentStepIndex;
                             const isExpanded = expandedSteps.has(index);
+                            // Show completed steps and the current active step
                             const isVisible = step.completed || isCurrent;
 
                             if (!isVisible) return null;
