@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { cleanupThinkingMessageWithError, ThinkingErrorType } from "@/lib/thinking-helpers";
+import { inngest } from "@/inngest/client";
 
 /**
  * Cancel endpoint for active thinking operations
@@ -35,6 +36,14 @@ export async function POST(request: NextRequest) {
         error: "No active thinking process found"
       }, { status: 404 });
     }
+
+    // Send cancel event to Inngest to actually stop the running function
+    await inngest.send({
+      name: "code-agent/cancel",
+      data: {
+        projectId,
+      },
+    });
 
     // Cleanup the thinking message with cancelled error type
     await cleanupThinkingMessageWithError(
