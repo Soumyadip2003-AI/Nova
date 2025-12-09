@@ -2,8 +2,12 @@ import { Card } from "@/components/ui/card";
 import { Fragment, MessageRole, MessageType } from "@/generated/prisma";
 import { cn } from "@/lib/utils";
 import {format} from "date-fns";
-import { ChevronRightIcon, Code2Icon } from "lucide-react";
+import { ChevronRightIcon, Code2Icon, CopyIcon, CheckIcon } from "lucide-react";
 import Image from "next/image";
+import ReactMarkdown from "react-markdown";
+import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/hint";
+import { useState } from "react";
 interface UserMessageProps{
     content: string;
 }
@@ -74,6 +78,14 @@ const AssistantMessage =({
     type,
 
 }:AssistantMessageProps)=>{
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     return(
         <div className={cn(
 
@@ -87,7 +99,7 @@ const AssistantMessage =({
                 height={18}
                 alt="Vibe"
                 className="shrink-0"
-                
+
                 />
                 <span className="text-sm font-medium">Vibe</span>
                 <span className="text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
@@ -96,8 +108,38 @@ const AssistantMessage =({
 
             </div>
             <div className="pl-8 flex flex-col gap-y-4">
-                <span>{content}</span>
-                {fragment && type== "RESULT" && (
+                {type === "CHAT" ? (
+                    <>
+                        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-headings:my-3 prose-ul:my-2 prose-ol:my-2 prose-li:my-0 prose-pre:bg-muted prose-pre:border prose-code:text-primary">
+                            <ReactMarkdown>{content}</ReactMarkdown>
+                        </div>
+                        <div className="flex items-center gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Hint text={copied ? "Copied!" : "Copy"} side="top">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 gap-1.5"
+                                    onClick={handleCopy}
+                                >
+                                    {copied ? (
+                                        <>
+                                            <CheckIcon className="h-3.5 w-3.5 text-green-500" />
+                                            <span className="text-xs text-green-500">Copied!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CopyIcon className="h-3.5 w-3.5" />
+                                            <span className="text-xs">Copy</span>
+                                        </>
+                                    )}
+                                </Button>
+                            </Hint>
+                        </div>
+                    </>
+                ) : (
+                    <span>{content}</span>
+                )}
+                {fragment && type === "RESULT" && (
                     <FragmentCard
                     fragment={fragment}
                     isActiveFragment={isActiveFragment}

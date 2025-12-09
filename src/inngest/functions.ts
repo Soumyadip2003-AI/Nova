@@ -24,6 +24,12 @@ interface AgentState{
 export const codeAgentFunction = inngest.createFunction(
   {
     id: "code-agent",
+    cancelOn: [
+      {
+        event: "code-agent/cancel",
+        match: "data.projectId",
+      },
+    ],
     onFailure: async ({ error, event, step }) => {
       console.log("onFailure triggered:", error);
 
@@ -93,6 +99,26 @@ export const codeAgentFunction = inngest.createFunction(
           `Creating isolated development environment for: "${event.data.value}"`
         );
         const sandbox= await Sandbox.create("vibe-nextjs-soumyadip-888");
+
+        // Load existing files from previous project state
+        const existingProject = await prisma.message.findFirst({
+          where: {
+            projectId: event.data.projectId,
+            type: "RESULT",
+            fragment: { isNot: null },
+          },
+          orderBy: { createAt: "desc" },
+          include: { fragment: true },
+        });
+
+        // If there are existing files, load them into the sandbox
+        if (existingProject?.fragment?.files) {
+          const files = existingProject.fragment.files as Record<string, string>;
+          for (const [path, content] of Object.entries(files)) {
+            await sandbox.files.write(path, content);
+          }
+        }
+
         // Complete immediately after sandbox is created
         await completeCurrentThinkingStep(thinkingMessage.id);
         return sandbox.sandboxId;

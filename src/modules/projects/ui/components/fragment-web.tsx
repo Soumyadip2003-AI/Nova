@@ -2,7 +2,7 @@ import { Fragment } from "@/generated/prisma";
 import { useState } from "react";
 import { ExternalLinkIcon,RefreshCcwIcon } from "lucide-react";
 import{Button} from"@/components/ui/button";
-import { Hint } from "@/components/ui/hint";
+import { Hint } from "@/components/hint";
 
 interface Props{
     data: Fragment;
@@ -42,15 +42,16 @@ export function FragmentWeb({data}: Props){
                 <Hint text="Open in a new tab" side="bottom" align="start">
                 <Button
                 size="sm"
+                variant="outline"
                 disabled={!data.sandboxUrl}
                 onClick={() => {
                     if(!data.sandboxUrl) return;
                     window.open(data.sandboxUrl,"_blank")
-                    
+
                 }}
                 >
                     <ExternalLinkIcon/>
-                     
+
                 </Button>
                 </Hint>
 

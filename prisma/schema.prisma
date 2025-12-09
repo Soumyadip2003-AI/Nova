@@ -31,11 +31,12 @@ enum MessageType {
   RESULT
   ERROR
   THINKING
+  CHAT
 }
 
 model Message {
   id        String      @id @default(uuid())
-  content   String
+  content   String?
   role      MessageRole
   type      MessageType
   thinking  Json?       // Stores thinking steps: {steps: [{title: string, content: string, completed: boolean}]}

@@ -37,16 +37,17 @@ export const MessageForm = ({projectId, isThinking = false, onCancelThinking}: P
     });
     const createMessage=useMutation(trpc.messages.create.mutationOptions({
         onSuccess:()=>{
-            form.reset();
+            // Reset the form to clear the input
+            form.reset({
+                value: ""
+            });
             queryClient.invalidateQueries(
                 trpc.messages.getMany.queryOptions({
                     projectId
                 }),
             );
-            //todo:reinvaildate
         },
         onError:(error)=>{
-            //todo: redirect to pricing page
             toast.error(error.message);
         },
     }));
