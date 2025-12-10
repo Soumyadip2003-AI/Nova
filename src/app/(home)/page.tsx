@@ -2,33 +2,62 @@ import Image from "next/image";
 import { ProjectForm } from "@/modules/home/ui/components/project-form";
 import { ProjectList } from "@/modules/home/ui/components/project-list";
 
-const Page =  () => {
-   
-  return(
-    <div className="flex flex-col max-w-5xl mx-auto w-full">
-      <section className="space-y-6 py-[16vh] 2xl:py-48">
-        <div className="flex flex-col items-center">
-          <Image
-          src="/logo.svg"
-          alt="Nova"
-          width={50}
-          height={50}
-          className="hidden md:block"
-          />
+const Page = () => {
+  return (
+    <div className="flex flex-col w-full">
+      {/* Hero Section */}
+      <section className="relative flex flex-col items-center justify-center min-h-[70vh] py-16 md:py-24">
+        {/* Floating orbs background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-amber-500/15 to-orange-500/15 rounded-full blur-3xl animate-float-delayed" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-full blur-3xl" />
         </div>
-        <h1 className="text-2xl md:text-5xl font-bold text-center">
-          Build something with Nova
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground text-center"> 
-          Create apps and websites by with AI
-        </p>
-        <div className="max-w-3xl mx-auto w-full">
-          <ProjectForm/>
 
+        <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto px-4 space-y-8">
+          {/* Logo with glow */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
+            <div className="relative p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl border border-amber-200/50 dark:border-amber-500/20 shadow-xl">
+              <Image
+                src="/logo.svg"
+                alt="Nova"
+                width={56}
+                height={56}
+                className="drop-shadow-lg"
+              />
+            </div>
+          </div>
+
+          {/* Headline with gradient */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text">
+                Build something
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent">
+                extraordinary
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Transform your ideas into reality with Nova. Create stunning apps and websites powered by AI in minutes, not months.
+            </p>
+          </div>
+
+          {/* Project Form */}
+          <div className="w-full max-w-2xl">
+            <ProjectForm />
+          </div>
         </div>
       </section>
-      <ProjectList/>
+
+      {/* Projects Section */}
+      <section className="max-w-6xl mx-auto w-full px-4 pb-16">
+        <ProjectList />
+      </section>
     </div>
   );
 };
+
 export default Page;
