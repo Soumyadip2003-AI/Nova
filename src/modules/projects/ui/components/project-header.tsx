@@ -1,84 +1,124 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { useTheme, UseThemeProps } from "next-themes";
+import { useTheme } from "next-themes";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import{ChevronDownIcon,ChevronLeftIcon, SunMoonIcon,} from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, SunIcon, MoonIcon, MonitorIcon } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuPortal,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface Props{
+interface Props {
     projectId: string;
 }
 
-export const ProjectHeader =({projectId}:Props)=>{
-    const trpc= useTRPC();
-    const {data:project}=useSuspenseQuery(
-        trpc.projects.getOne.queryOptions({id: projectId})
+export const ProjectHeader = ({ projectId }: Props) => {
+    const trpc = useTRPC();
+    const { data: project } = useSuspenseQuery(
+        trpc.projects.getOne.queryOptions({ id: projectId })
     );
-     const {setTheme,theme} = useTheme();
+    const { setTheme, theme } = useTheme();
 
-   return(
-    <header className="p-2 flex justify-between items-center border-b">
-         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                variant='ghost'
-                size="sm"
-                className="focus-visible:ring-0 hover:bg-transparent hover:opacity-75 transition-opacity pl-2!"
+    return (
+        <header className="p-3 flex justify-between items-center border-b bg-background/80 backdrop-blur-sm">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                            "gap-2 px-2 h-9 rounded-xl transition-all",
+                            "hover:bg-muted focus-visible:ring-0",
+                            "group"
+                        )}
+                    >
+                        {/* Logo with glow effect */}
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-lg blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative size-7 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 flex items-center justify-center ring-1 ring-amber-200/50 dark:ring-amber-700/50">
+                                <Image src="/logo.svg" alt="Nova" width={16} height={16} />
+                            </div>
+                        </div>
+
+                        {/* Project name */}
+                        <span className="text-sm font-semibold truncate max-w-[150px]">
+                            {project.name}
+                        </span>
+
+                        <ChevronDownIcon className="size-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                    side="bottom"
+                    align="start"
+                    className="w-56 rounded-xl border-border/50 shadow-xl"
                 >
-                    <Image src="/logo.svg" alt="Nova" width={18} height={18}/>
-                    <span className="text-sm font-medium">{project.name}</span>
-                    <ChevronDownIcon/>
+                    <DropdownMenuItem asChild className="rounded-lg gap-3 py-2.5 cursor-pointer">
+                        <Link href="/">
+                            <div className="size-8 rounded-lg bg-muted flex items-center justify-center">
+                                <ChevronLeftIcon className="size-4" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-medium">Dashboard</span>
+                                <span className="text-xs text-muted-foreground">Back to all projects</span>
+                            </div>
+                        </Link>
+                    </DropdownMenuItem>
 
-                </Button>
+                    <DropdownMenuSeparator />
 
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="bottom" align="start">
-                <DropdownMenuItem asChild> 
-                    <Link href="/">
-                    <ChevronLeftIcon/>
-                    <span>
-                        Go to Dashboard
-                    </span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator/>
-                <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="gap-2">
-                       <SunMoonIcon  className="size-4 text-muted-foreground"/>
-                       <span>Appearance</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                            <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                                <DropdownMenuRadioItem value="light">
-                                    <span>Light</span>
-                                </DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="dark">
-                                    <span>Dark</span>
-                                </DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="system">
-                                    <span>System</span>
-                                </DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                </DropdownMenuSub>
-            </DropdownMenuContent>
-         </DropdownMenu>
-    </header>
-    )
-}
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="rounded-lg gap-3 py-2.5">
+                            <div className="size-8 rounded-lg bg-muted flex items-center justify-center">
+                                {theme === "dark" ? (
+                                    <MoonIcon className="size-4" />
+                                ) : theme === "light" ? (
+                                    <SunIcon className="size-4" />
+                                ) : (
+                                    <MonitorIcon className="size-4" />
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-medium">Appearance</span>
+                                <span className="text-xs text-muted-foreground capitalize">{theme} mode</span>
+                            </div>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                            <DropdownMenuSubContent className="rounded-xl">
+                                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                                    <DropdownMenuRadioItem value="light" className="rounded-lg gap-2 py-2">
+                                        <SunIcon className="size-4" />
+                                        <span>Light</span>
+                                    </DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="dark" className="rounded-lg gap-2 py-2">
+                                        <MoonIcon className="size-4" />
+                                        <span>Dark</span>
+                                    </DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="system" className="rounded-lg gap-2 py-2">
+                                        <MonitorIcon className="size-4" />
+                                        <span>System</span>
+                                    </DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                    </DropdownMenuSub>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </header>
+    );
+};

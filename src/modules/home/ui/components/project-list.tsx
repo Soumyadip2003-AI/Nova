@@ -5,8 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
-import { Loader2Icon, ArrowRightIcon, ClockIcon, SparklesIcon, TrashIcon } from "lucide-react";
+import { Loader2Icon, ClockIcon, FolderOpenIcon, TrashIcon, ArrowRightIcon } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -39,12 +40,14 @@ export const ProjectList = () => {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 blur-xl animate-pulse" />
-                    <Loader2Icon className="size-8 animate-spin text-amber-500 relative" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500/30 to-orange-500/30 blur-2xl animate-pulse scale-150" />
+                    <div className="relative p-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-xl">
+                        <Loader2Icon className="size-8 animate-spin text-amber-500" />
+                    </div>
                 </div>
-                <p className="text-sm text-muted-foreground animate-pulse">Loading your projects...</p>
+                <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading your projects...</p>
             </div>
         );
     }
@@ -54,52 +57,81 @@ export const ProjectList = () => {
     }
 
     return (
-        <section className="space-y-8 pb-12">
-            <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-                    <SparklesIcon className="size-5 text-amber-500" />
-                </div>
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                        Saved Projects
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {projects.length} project{projects.length !== 1 ? "s" : ""} created
-                    </p>
+        <section className="space-y-8 py-8">
+            {/* Section Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl blur-lg opacity-30" />
+                        <div className="relative p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/25">
+                            <FolderOpenIcon className="size-5 text-white" />
+                        </div>
+                    </div>
+                    <div>
+                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                            Your Projects
+                        </h2>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                            {projects.length} project{projects.length !== 1 ? "s" : ""} created
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Project Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projects.map((project, index) => (
-                    <div
+                    <Link
                         key={project.id}
-                        className="group relative"
-                        style={{ animationDelay: `${index * 50}ms` }}
+                        href={`/projects/${project.id}`}
+                        className={cn(
+                            "group relative block animate-fade-in-up",
+                        )}
+                        style={{ animationDelay: `${index * 75}ms` }}
                     >
-                        {/* Glow effect on hover */}
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500/0 via-orange-500/0 to-rose-500/0 rounded-2xl blur-lg group-hover:from-amber-500/20 group-hover:via-orange-500/20 group-hover:to-rose-500/20 transition-all duration-500 opacity-0 group-hover:opacity-100" />
+                        {/* Glow effect */}
+                        <div className="absolute -inset-px bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl opacity-0 group-hover:opacity-100 blur-sm transition-all duration-500" />
 
-                        <div className="relative flex flex-col p-5 rounded-xl bg-card border border-border/50 hover:border-amber-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 group-hover:-translate-y-1">
-                            {/* Top section with icon and actions */}
+                        {/* Card */}
+                        <div className={cn(
+                            "relative flex flex-col h-full p-5 rounded-2xl transition-all duration-300",
+                            "bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl",
+                            "border border-zinc-200/80 dark:border-zinc-800/80",
+                            "group-hover:border-transparent",
+                            "group-hover:shadow-2xl group-hover:shadow-amber-500/10",
+                            "group-hover:-translate-y-1"
+                        )}>
+                            {/* Top row: Logo and Actions */}
                             <div className="flex items-start justify-between mb-4">
+                                {/* Logo */}
                                 <div className="relative">
-                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
-                                    <div className="relative size-14 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 flex items-center justify-center ring-1 ring-amber-500/20 group-hover:ring-amber-500/40 transition-all">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
+                                    <div className={cn(
+                                        "relative size-12 rounded-xl flex items-center justify-center transition-all duration-300",
+                                        "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30",
+                                        "ring-1 ring-amber-200/50 dark:ring-amber-500/20",
+                                        "group-hover:ring-amber-500/50 group-hover:scale-105"
+                                    )}>
                                         <Image
                                             src="/logo.svg"
                                             alt="Project"
-                                            width={32}
-                                            height={32}
-                                            className="group-hover:scale-110 transition-transform duration-300"
+                                            width={28}
+                                            height={28}
+                                            className="transition-transform duration-300 group-hover:scale-110"
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    {/* Delete button */}
+
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="size-8 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-500"
+                                        className={cn(
+                                            "size-8 rounded-xl transition-all duration-200",
+                                            "hover:bg-red-500/10 hover:text-red-500",
+                                            "dark:hover:bg-red-500/20"
+                                        )}
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
@@ -108,25 +140,25 @@ export const ProjectList = () => {
                                     >
                                         <TrashIcon className="size-4" />
                                     </Button>
-                                    {/* Arrow link */}
-                                    <Link
-                                        href={`/projects/${project.id}`}
-                                        className="size-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-amber-500/10 transition-colors"
-                                    >
-                                        <ArrowRightIcon className="size-4 text-muted-foreground group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
-                                    </Link>
+                                    <div className={cn(
+                                        "size-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                                        "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                    )}>
+                                        <ArrowRightIcon className="size-4" />
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Project name - clickable */}
-                            <Link href={`/projects/${project.id}`}>
-                                <h3 className="font-semibold text-lg mb-2 truncate group-hover:text-amber-500 transition-colors cursor-pointer">
-                                    {project.name}
-                                </h3>
-                            </Link>
+                            {/* Project name */}
+                            <h3 className={cn(
+                                "font-semibold text-lg mb-2 truncate transition-colors duration-300",
+                                "group-hover:text-amber-600 dark:group-hover:text-amber-400"
+                            )}>
+                                {project.name}
+                            </h3>
 
                             {/* Timestamp */}
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-auto pt-3 border-t border-zinc-100 dark:border-zinc-800/50">
                                 <ClockIcon className="size-3.5" />
                                 <span>
                                     {formatDistanceToNow(new Date(project.updatedAt), {
@@ -135,30 +167,33 @@ export const ProjectList = () => {
                                 </span>
                             </div>
 
-                            {/* Bottom accent line */}
-                            <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-amber-500/0 to-transparent group-hover:via-amber-500/50 transition-all duration-500 rounded-full" />
+                            {/* Bottom gradient line */}
+                            <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-                <AlertDialogContent>
+                <AlertDialogContent className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                        <AlertDialogDescription>
+                        <AlertDialogTitle className="text-xl">Delete Project</AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground">
                             Are you sure you want to delete this project? This action cannot be undone and all associated data will be permanently removed.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deleteMutation.isPending}>
+                    <AlertDialogFooter className="gap-2">
+                        <AlertDialogCancel
+                            disabled={deleteMutation.isPending}
+                            className="rounded-xl"
+                        >
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
                             disabled={deleteMutation.isPending}
-                            className="bg-red-500 hover:bg-red-600 focus:ring-red-500"
+                            className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25"
                         >
                             {deleteMutation.isPending ? (
                                 <>
@@ -166,7 +201,7 @@ export const ProjectList = () => {
                                     Deleting...
                                 </>
                             ) : (
-                                "Delete"
+                                "Delete Project"
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

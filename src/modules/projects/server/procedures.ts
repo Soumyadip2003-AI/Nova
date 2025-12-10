@@ -69,16 +69,18 @@ export const projectsRouter = createTRPCRouter({
                 },
             });
 
-
-
-
-            await inngest.send({
-                name: "code-agent/run",
-                data: {
-                    value: input.value,
-                    projectId: createdProject.id,
-                }
-            });
+            try {
+                await inngest.send({
+                    name: "code-agent/run",
+                    data: {
+                        value: input.value,
+                        projectId: createdProject.id,
+                    }
+                });
+            } catch (error) {
+                console.error("Failed to send Inngest event:", error);
+                // Continue even if Inngest fails - project is already created
+            }
 
             return createdProject;
 
