@@ -13,7 +13,6 @@ import{Tabs,TabsContent,TabsList,TabsTrigger} from "@/components/ui/tabs";
 import { EyeIcon, CodeIcon, CrownIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CodeView } from "@/components/code-view";
 import { FileExplorer } from "@/components/file-explorer";
 
 interface Props {
