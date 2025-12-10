@@ -119,7 +119,7 @@ export const ProjectForm = () => {
                         <div className="flex items-center justify-between pt-4 mt-2 border-t border-zinc-200/60 dark:border-zinc-800/60">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium">
-                                    <span className="text-xs">⌘</span>
+                                    <span className="text-xs">⌘/Ctrl</span>
                                     <span>Enter</span>
                                 </kbd>
                                 <span className="hidden sm:inline">to submit</span>
@@ -158,7 +158,7 @@ export const ProjectForm = () => {
                             size="sm"
                             onClick={() => onSelect(template.prompt)}
                             className={cn(
-                                "rounded-full px-4 h-9 transition-all duration-300",
+                                "rounded-full px-4 h-9 transition-all duration-300 animate-fade-in",
                                 "bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm",
                                 "border-zinc-200/80 dark:border-zinc-800/80",
                                 "hover:border-amber-500/40 hover:bg-amber-50/50 dark:hover:bg-amber-950/30",

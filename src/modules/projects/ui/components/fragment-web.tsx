@@ -15,7 +15,7 @@ export function FragmentWeb({ data }: Props) {
     const [fragmentKey, setFragmentKey] = useState(0);
     const [copied, setCopied] = useState(false);
     const [loadError, setLoadError] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(!!data.sandboxUrl);
 
     const onRefresh = () => {
         setFragmentKey((prev) => prev + 1);
@@ -23,10 +23,15 @@ export function FragmentWeb({ data }: Props) {
         setIsLoading(true);
     };
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(data.sandboxUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleCopy = async () => {
+        if (!data.sandboxUrl) return;
+        try {
+            await navigator.clipboard.writeText(data.sandboxUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (error) {
+            console.error("Failed to copy URL:", error);
+        }
     };
 
     return (
@@ -133,19 +138,25 @@ export function FragmentWeb({ data }: Props) {
                         )}
 
                         {/* Iframe */}
-                        <iframe
-                            key={fragmentKey}
-                            className="h-full w-full bg-white"
-                            sandbox="allow-forms allow-scripts allow-same-origin"
-                            loading="lazy"
-                            src={data.sandboxUrl}
-                            onLoad={() => setIsLoading(false)}
-                            onError={() => {
-                                setLoadError(true);
-                                setIsLoading(false);
-                            }}
-                            title="Code preview"
-                        />
+                        {data.sandboxUrl ? (
+                            <iframe
+                                key={fragmentKey}
+                                className="h-full w-full bg-white"
+                                sandbox="allow-forms allow-scripts allow-same-origin"
+                                loading="lazy"
+                                src={data.sandboxUrl}
+                                onLoad={() => setIsLoading(false)}
+                                onError={() => {
+                                    setLoadError(true);
+                                    setIsLoading(false);
+                                }}
+                                title="Code preview"
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground">No preview URL available</p>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
