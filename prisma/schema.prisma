@@ -47,6 +47,9 @@ model Message {
   projectId String
 
   fragment Fragment?
+
+  @@index([projectId, updatedAt])
+  @@index([projectId, type])
 }
 
 model Fragment {

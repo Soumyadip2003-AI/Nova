@@ -6,6 +6,26 @@ import { generateSlug } from "random-word-slugs"
 import { TRPCError } from "@trpc/server";
 
 export const projectsRouter = createTRPCRouter({
+    getMany: baseProcedure
+        .query(async () => {
+            const projects = await prisma.project.findMany({
+                orderBy: {
+                    updatedAt: "desc",
+                },
+                include: {
+                    messages: {
+                        take: 1,
+                        orderBy: {
+                            createAt: "asc",
+                        },
+                        where: {
+                            role: "USER",
+                        },
+                    },
+                },
+            });
+            return projects;
+        }),
     getOne: baseProcedure
      .input(z.object({
         id:z.string().min(1, { message: " ID is required" }),
@@ -62,5 +82,33 @@ export const projectsRouter = createTRPCRouter({
 
             return createdProject;
 
+        }),
+    remove: baseProcedure
+        .input(
+            z.object({
+                id: z.string().min(1, { message: "ID is required" }),
+            }),
+        )
+        .mutation(async ({ input }) => {
+            const existingProject = await prisma.project.findUnique({
+                where: {
+                    id: input.id,
+                },
+            });
+
+            if (!existingProject) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Project not found",
+                });
+            }
+
+            await prisma.project.delete({
+                where: {
+                    id: input.id,
+                },
+            });
+
+            return { success: true };
         }),
 });

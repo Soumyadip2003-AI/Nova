@@ -369,7 +369,7 @@ export const MessageLoading = ({ thinking }: MessageLoadingProps) => {
                 <div className="relative">
                     <Image
                         src="/logo.svg"
-                        alt="Vibe"
+                        alt="Nova"
                         width={20}
                         height={20}
                         className="shrink-0"
@@ -377,7 +377,7 @@ export const MessageLoading = ({ thinking }: MessageLoadingProps) => {
                     <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
                 </div>
                 <span className="text-sm font-semibold">
-                    Vibe
+                    Nova
                 </span>
             </div>
             <div className="pl-8 flex flex-col gap-y-4">
