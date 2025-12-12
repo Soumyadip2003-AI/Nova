@@ -167,7 +167,7 @@ const AssistantMessage = ({
                         </span>
                     )}
                     <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        {format(createdAt, "HH:mm 'on' MMM dd, yyyy")}
+                        {format(new Date(createdAt), "HH:mm 'on' MMM dd, yyyy")}
                     </span>
                 </div>
             </div>

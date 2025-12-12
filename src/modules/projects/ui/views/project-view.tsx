@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FileExplorer } from "@/components/file-explorer";
 import { cn } from "@/lib/utils";
+import { UserControl } from "@/components/user-control";
 
 interface Props {
     projectId: string;
@@ -64,7 +65,8 @@ export const ProjectView = ({ projectId }: Props) => {
     const [activeFragment, setActiveFragment] = useState<Fragment | null>(null);
     const [tabState, setTabState] = useState<"preview" | "code">("preview");
     const trpc = useTRPC();
-    const { data: project } = useSuspenseQuery({
+    // Ensure project exists and is hydrated from server prefetch
+    useSuspenseQuery({
         ...trpc.projects.getOne.queryOptions({
             id: projectId,
         }),
@@ -143,21 +145,24 @@ export const ProjectView = ({ projectId }: Props) => {
                                 </TabsTrigger>
                             </TabsList>
 
-                            {/* Upgrade Button */}
-                            <Button
-                                asChild
-                                size="sm"
-                                className={cn(
-                                    "rounded-xl gap-2 px-4 transition-all",
-                                    "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
-                                    "text-white shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30"
-                                )}
-                            >
-                                <Link href="/pricing">
-                                    <CrownIcon className="size-4" />
-                                    <span>Upgrade</span>
-                                </Link>
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                {/* Upgrade Button */}
+                                <Button
+                                    asChild
+                                    size="sm"
+                                    className={cn(
+                                        "rounded-xl gap-2 px-4 transition-all",
+                                        "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
+                                        "text-white shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30"
+                                    )}
+                                >
+                                    <Link href="/pricing">
+                                        <CrownIcon className="size-4" />
+                                        <span>Upgrade</span>
+                                    </Link>
+                                </Button>
+                                <UserControl/>
+                            </div>
                         </div>
 
                         {/* Tab Content */}

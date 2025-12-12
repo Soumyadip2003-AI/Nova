@@ -92,7 +92,7 @@ export function detectQuestionOrCode(input: string): DetectionResult {
   }
 
   // Default: assume code generation if no patterns match
-  // Most users come to Vibe to generate code
+  // Most users come to Nova to generate code
   return { isQuestion: false, confidence: 0.5, matchedPattern: "default" };
 }
 

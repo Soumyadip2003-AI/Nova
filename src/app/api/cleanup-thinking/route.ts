@@ -16,12 +16,12 @@ export async function GET() {
     const orphanedMessages = await prisma.message.findMany({
       where: {
         type: "THINKING",
-        createAt: { lt: fifteenMinutesAgo }
+        createdAt: { lt: fifteenMinutesAgo }
       },
       select: {
         id: true,
         projectId: true,
-        createAt: true
+        createdAt: true
       }
     });
 

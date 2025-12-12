@@ -1,22 +1,26 @@
 import { inngest } from "@/inngest/client";
 import { prisma } from "@/lib/db";
-import { baseProcedure, createTRPCRouter } from "@/trpc/init";
+import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { z } from "zod";
 import { isDefinitelyQuestion } from "@/lib/question-detector";
 import { generateChatResponse } from "@/lib/chat-agent";
 import { createThinkingMessage, deleteThinkingMessage } from "@/lib/thinking-helpers";
+import { TRPCError } from "@trpc/server";
 
 export const messagesRouter = createTRPCRouter({
-    getMany: baseProcedure
+    getMany:protectedProcedure
     .input(
             z.object({
                 projectId: z.string().min(1, { message: "Project ID is required" }),
             }),
         )
-    .query(async({input})=>{
+    .query(async({input,ctx})=>{
         const messages = await prisma.message.findMany({
             where:{
                 projectId: input.projectId,
+                project:{
+                     userId: ctx.auth.userId,
+                }
             },
             orderBy:{
                 updatedAt: "asc",
@@ -27,7 +31,7 @@ export const messagesRouter = createTRPCRouter({
         });
         return messages;
     }),
-    create: baseProcedure
+    create: protectedProcedure
         .input(
             z.object({
                 value: z.string()
@@ -36,7 +40,19 @@ export const messagesRouter = createTRPCRouter({
                 projectId: z.string().min(1, { message: "Project ID is required" }),
             }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+            // Verify the project belongs to the user
+            const existingproject = await prisma.project.findUnique({
+                where: {
+                    id: input.projectId,
+                    userId: ctx.auth.userId,
+                },
+            });
+
+            if (!existingproject) {
+                throw new TRPCError( {code: "NOT_FOUND", message: "Project not found"})
+            }
+
             // Check if this is a question or a code generation request
             const isQuestion = isDefinitelyQuestion(input.value);
 
@@ -44,7 +60,7 @@ export const messagesRouter = createTRPCRouter({
                 // Handle as a chat/question - fast path without Inngest
                 const userMessage = await prisma.message.create({
                     data: {
-                        projectId: input.projectId,
+                        projectId: existingproject.id,
                         content: input.value,
                         role: "USER",
                         type: "CHAT",

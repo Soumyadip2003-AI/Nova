@@ -2,9 +2,14 @@ import { PrismaClient, Prisma } from "../src/generated/prisma";
 
 const prisma = new PrismaClient();
 
+// Note: This seed file requires a valid userId from Clerk
+// For development, you can use a test userId or skip seeding
+const DEMO_USER_ID = process.env.SEED_USER_ID || "demo_user_id";
+
 const projectData: Prisma.ProjectCreateInput[] = [
   {
     name: "AI Chat Application",
+    userId: DEMO_USER_ID,
     messages: {
       create: [
         {
@@ -27,6 +32,7 @@ const projectData: Prisma.ProjectCreateInput[] = [
   },
   {
     name: "Code Generator",
+    userId: DEMO_USER_ID,
     messages: {
       create: [
         {

@@ -16,6 +16,7 @@ datasource db {
 model Project {
   id        String   @id @default(uuid())
   name      String
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -40,7 +41,7 @@ model Message {
   role      MessageRole
   type      MessageType
   thinking  Json?       // Stores thinking steps: {steps: [{title: string, content: string, completed: boolean}]}
-  createAt  DateTime    @default(now())
+  createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -61,6 +62,6 @@ model Fragment {
   title      String
   files      Json
 
-  createAt  DateTime @default(now())
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

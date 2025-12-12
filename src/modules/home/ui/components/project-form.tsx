@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
 import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES } from "../../constants";
+import { useAuth } from "@clerk/nextjs";
 
 const formSchema = z.object({
     value: z.string()
@@ -24,6 +25,7 @@ const formSchema = z.object({
 export const ProjectForm = () => {
     const trpc = useTRPC();
     const router = useRouter();
+    const { isSignedIn } = useAuth();
     const [isFocused, setIsFocused] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -44,6 +46,12 @@ export const ProjectForm = () => {
     }));
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        // Redirect to sign-in if not authenticated
+        if (!isSignedIn) {
+            router.push("/sign-in");
+            return;
+        }
+
         form.reset({ value: "" });
         createProject.mutate({ value: values.value });
     };

@@ -4,22 +4,21 @@ import { prisma } from '../src/lib/db';
 async function main() {
     console.log('Testing DB connection...');
     try {
-        const count = await prisma.message.count();
-        console.log(`Successfully connected. Message count: ${count}`);
+        const count = await prisma.project.count();
+        console.log(`Successfully connected. Project count: ${count}`);
 
-        console.log('Attempting to create a message...');
-        const message = await prisma.message.create({
+        console.log('Attempting to create a test project...');
+        const project = await prisma.project.create({
             data: {
-                content: 'Test message from script',
-                role: 'USER',
-                type: 'RESULT',
+                name: 'Test Project from script',
+                userId: 'test_user_id',
             },
         });
-        console.log('Successfully created message:', message.id);
+        console.log('Successfully created project:', project.id);
 
         // Clean up
-        await prisma.message.delete({ where: { id: message.id } });
-        console.log('Successfully deleted test message');
+        await prisma.project.delete({ where: { id: project.id } });
+        console.log('Successfully deleted test project');
 
     } catch (error) {
         console.error('DB Connection or Operation failed:', error);

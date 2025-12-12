@@ -1,3 +1,5 @@
+import { Navbar } from "@/modules/home/ui/components/navbar";
+
 interface Props {
     children: React.ReactNode;
 }
@@ -5,6 +7,7 @@ interface Props {
 const Layout = ({ children }: Props) => {
     return (
         <main className="relative flex flex-col min-h-screen overflow-x-hidden">
+            <Navbar/>
             {/* Animated mesh gradient background */}
             <div className="fixed inset-0 -z-10">
                 {/* Base gradient */}

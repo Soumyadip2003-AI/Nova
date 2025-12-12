@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma";
 import { z } from "zod";
 
 // Error types for specific failure scenarios
@@ -48,6 +49,25 @@ export type ThinkingData = z.infer<typeof ThinkingDataSchema>;
  */
 export function isThinkingData(data: unknown): data is ThinkingData {
     return ThinkingDataSchema.safeParse(data).success;
+}
+
+/**
+ * Safely parses Prisma JSON field to ThinkingData
+ * @param json - Prisma JSON value
+ * @returns ThinkingData or null if invalid
+ */
+function parseThinkingData(json: Prisma.JsonValue | null): ThinkingData {
+    if (!json || !isThinkingData(json)) {
+        return { steps: [] };
+    }
+    return json;
+}
+
+/**
+ * Converts ThinkingData to Prisma-compatible JSON
+ */
+function toJsonValue(data: ThinkingData): Prisma.InputJsonValue {
+    return data as unknown as Prisma.InputJsonValue;
 }
 
 /**
@@ -106,14 +126,7 @@ export async function addThinkingStep(
         return message;
     }
 
-    let thinking = (message.thinking as any as ThinkingData) || { steps: [] };
-
-    // Validate existing thinking data
-    if (!isThinkingData(thinking)) {
-        console.error(`Invalid thinking data structure for message ${messageId}`);
-        // Reset to valid structure
-        thinking = { steps: [] };
-    }
+    const thinking = parseThinkingData(message.thinking);
 
     thinking.steps.push({
         title,
@@ -124,7 +137,7 @@ export async function addThinkingStep(
 
     return await prisma.message.update({
         where: { id: messageId },
-        data: { thinking: thinking as any }
+        data: { thinking: toJsonValue(thinking) }
     });
 }
 
@@ -147,8 +160,8 @@ export async function completeCurrentThinkingStep(messageId: string) {
         return message;
     }
 
-    const thinking = message.thinking as any as ThinkingData;
-    if (!thinking || !thinking.steps.length) {
+    const thinking = parseThinkingData(message.thinking);
+    if (!thinking.steps.length) {
         return message;
     }
 
@@ -170,7 +183,7 @@ export async function completeCurrentThinkingStep(messageId: string) {
 
     return await prisma.message.update({
         where: { id: messageId },
-        data: { thinking: thinking as any }
+        data: { thinking: toJsonValue(thinking) }
     });
 }
 
@@ -197,8 +210,8 @@ export async function updateCurrentThinkingStepContent(
         return message;
     }
 
-    const thinking = message.thinking as any as ThinkingData;
-    if (!thinking || !thinking.steps.length) {
+    const thinking = parseThinkingData(message.thinking);
+    if (!thinking.steps.length) {
         return message;
     }
 
@@ -210,7 +223,7 @@ export async function updateCurrentThinkingStepContent(
 
     return await prisma.message.update({
         where: { id: messageId },
-        data: { thinking: thinking as any }
+        data: { thinking: toJsonValue(thinking) }
     });
 }
 
@@ -227,8 +240,8 @@ export async function deleteThinkingMessage(messageId: string) {
         });
 
         if (message && message.type === "THINKING") {
-            const thinking = message.thinking as any as ThinkingData;
-            if (isThinkingData(thinking)) {
+            const thinking = parseThinkingData(message.thinking);
+            if (thinking.steps.length > 0) {
                 // Calculate aggregate metrics
                 const totalDuration = thinking.steps.reduce((acc, step) => {
                     if (step.startTime && step.endTime) {
@@ -287,8 +300,8 @@ export async function cleanupThinkingMessageWithError(
 
         // Log telemetry for failed thinking processes
         if (message && message.type === "THINKING") {
-            const thinking = message.thinking as any as ThinkingData;
-            if (isThinkingData(thinking)) {
+            const thinking = parseThinkingData(message.thinking);
+            if (thinking.steps.length > 0) {
                 const completedSteps = thinking.steps.filter(s => s.completed);
                 const currentStep = thinking.steps.find(s => !s.completed);
                 const totalDuration = thinking.steps.reduce((acc, step) => {
@@ -373,14 +386,14 @@ export async function getThinkingMessageStats() {
         prisma.message.count({
             where: {
                 type: "THINKING",
-                createAt: { gte: fiveMinutesAgo }
+                createdAt: { gte: fiveMinutesAgo }
             }
         }),
         // Stale thinking messages (5-60 minutes old)
         prisma.message.count({
             where: {
                 type: "THINKING",
-                createAt: {
+                createdAt: {
                     gte: oneHourAgo,
                     lt: fiveMinutesAgo
                 }
@@ -390,7 +403,7 @@ export async function getThinkingMessageStats() {
         prisma.message.count({
             where: {
                 type: "THINKING",
-                createAt: { lt: oneHourAgo }
+                createdAt: { lt: oneHourAgo }
             }
         })
     ]);
@@ -420,24 +433,24 @@ export async function getOrphanedThinkingMessages(olderThanMinutes: number = 60)
     const orphaned = await prisma.message.findMany({
         where: {
             type: "THINKING",
-            createAt: { lt: cutoffTime }
+            createdAt: { lt: cutoffTime }
         },
         select: {
             id: true,
             projectId: true,
-            createAt: true,
+            createdAt: true,
             thinking: true
         },
         orderBy: {
-            createAt: 'asc'
+            createdAt: 'asc'
         }
     });
 
     return orphaned.map(msg => ({
         id: msg.id,
         projectId: msg.projectId,
-        age: Math.floor((Date.now() - msg.createAt.getTime()) / 60000), // Age in minutes
-        createdAt: msg.createAt,
+        age: Math.floor((Date.now() - msg.createdAt.getTime()) / 60000), // Age in minutes
+        createdAt: msg.createdAt,
         steps: isThinkingData(msg.thinking) ? msg.thinking.steps.length : 0
     }));
 }

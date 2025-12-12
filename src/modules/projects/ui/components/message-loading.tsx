@@ -3,13 +3,13 @@ import { useState, useEffect } from "react";
 import { ChevronRight, Sparkles, Brain, Zap, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ThinkingStep {
+export interface ThinkingStep {
     title: string;
     content: string;
     completed: boolean;
 }
 
-interface ThinkingData {
+export interface ThinkingData {
     steps: ThinkingStep[];
 }
 
@@ -37,7 +37,7 @@ const STEP_WEIGHTS: Record<string, number> = {
 };
 
 // Progress bar for active step (like Claude)
-const ProgressBar = ({ duration = 3000 }: { duration?: number }) => {
+const ProgressBar = () => {
     const [progress, setProgress] = useState(0);
 
     useEffect(() => {

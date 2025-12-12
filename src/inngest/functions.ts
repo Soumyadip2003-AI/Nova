@@ -57,7 +57,7 @@ export const codeAgentFunction = inngest.createFunction(
             projectId,
             type: "THINKING"
           },
-          orderBy: { createAt: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 1
         });
 
@@ -98,7 +98,9 @@ export const codeAgentFunction = inngest.createFunction(
           "Setting up environment",
           `Creating isolated development environment for: "${event.data.value}"`
         );
-        const sandbox= await Sandbox.create("vibe-nextjs-soumyadip-888");
+        // Use template ID (more reliable) or fall back to template name
+        const templateId = process.env.E2B_TEMPLATE_ID || "c7kxk6kebmrc9xzxb09f";
+        const sandbox= await Sandbox.create(templateId);
 
         // Load existing files from previous project state
         const existingProject = await prisma.message.findFirst({
@@ -107,7 +109,7 @@ export const codeAgentFunction = inngest.createFunction(
             type: "RESULT",
             fragment: { isNot: null },
           },
-          orderBy: { createAt: "desc" },
+          orderBy: { createdAt: "desc" },
           include: { fragment: true },
         });
 
