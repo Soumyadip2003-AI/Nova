@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { ProjectForm } from "@/modules/home/ui/components/project-form";
 import { ProjectList } from "@/modules/home/ui/components/project-list";
+import { SignedIn } from "@clerk/nextjs";
 
 const Page = () => {
   return (
@@ -52,10 +53,12 @@ const Page = () => {
         </div>
       </section>
 
-      {/* Projects Section */}
-      <section className="max-w-6xl mx-auto w-full px-4 pb-16">
-        <ProjectList />
-      </section>
+      {/* Projects Section - Only show when signed in */}
+      <SignedIn>
+        <section className="max-w-6xl mx-auto w-full px-4 pb-16">
+          <ProjectList />
+        </section>
+      </SignedIn>
     </div>
   );
 };

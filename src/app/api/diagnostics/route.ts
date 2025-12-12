@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+interface DiagnosticsResult {
+    timestamp: string;
+    environment: {
+        NODE_ENV: string | undefined;
+        DATABASE_URL_SET: boolean;
+        DATABASE_URL_LENGTH: number;
+    };
+    database: {
+        connected: boolean;
+        error: string | null;
+        messageCount?: number;
+    };
+    status?: 'OK' | 'ERROR';
+}
+
 export async function GET() {
-    const diagnostics: any = {
+    const diagnostics: DiagnosticsResult = {
         timestamp: new Date().toISOString(),
         environment: {
             NODE_ENV: process.env.NODE_ENV,
@@ -21,9 +36,9 @@ export async function GET() {
         diagnostics.database.connected = true;
         diagnostics.database.messageCount = messageCount;
         diagnostics.status = 'OK';
-    } catch (error: any) {
+    } catch (error: unknown) {
         diagnostics.database.connected = false;
-        diagnostics.database.error = error.message || String(error);
+        diagnostics.database.error = error instanceof Error ? error.message : String(error);
         diagnostics.status = 'ERROR';
     }
 

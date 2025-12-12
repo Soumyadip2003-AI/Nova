@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         projectId,
         type: "THINKING"
       },
-      orderBy: { createAt: 'desc' }
+      orderBy: { createdAt: 'desc' }
     });
 
     if (!thinkingMessage) {

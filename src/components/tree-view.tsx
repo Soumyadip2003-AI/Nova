@@ -8,7 +8,7 @@ import {
     FileJson,
     FileText,
     FileType,
-    Image,
+    Image as ImageIcon,
     FileCode,
     Database,
     Lock,
@@ -112,7 +112,7 @@ const getFileIcon = (filename: string) => {
         case 'svg':
         case 'webp':
         case 'ico':
-            return <Image className="w-4 h-4 text-purple-400" />;
+            return <ImageIcon className="w-4 h-4 text-purple-400" />;
 
         // Python
         case 'py':

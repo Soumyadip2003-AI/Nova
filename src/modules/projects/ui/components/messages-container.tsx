@@ -6,7 +6,7 @@ import { MessageCard } from "./message-card";
 import { MessageForm } from "./message-form";
 import { useEffect, useRef, useCallback } from "react";
 import { Fragment } from "@/generated/prisma";
-import { MessageLoading } from "./message-loading";
+import { MessageLoading, ThinkingData } from "./message-loading";
 import { MessageCircleIcon } from "lucide-react";
 
 interface Props {
@@ -107,7 +107,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
                                 content={message.content ?? ""}
                                 role={message.role}
                                 fragment={message.fragment}
-                                createdAt={message.createAt}
+                                createdAt={message.createdAt}
                                 isActiveFragment={activeFragment?.id === message.fragment?.id}
                                 onFragmentClick={() => setActiveFragment(message.fragment)}
                                 type={message.type}
@@ -117,7 +117,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
 
                     {/* Loading state */}
                     {(isLastMessageUser || lastThinkingMessage) && (
-                        <MessageLoading thinking={lastThinkingMessage?.thinking as any} />
+                        <MessageLoading thinking={lastThinkingMessage?.thinking as ThinkingData | null} />
                     )}
 
                     <div ref={bottomRef} className="h-4" />

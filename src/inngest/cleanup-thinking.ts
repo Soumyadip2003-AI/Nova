@@ -25,12 +25,12 @@ export const cleanupOrphanedThinkingMessages = inngest.createFunction(
       const orphanedMessages = await prisma.message.findMany({
         where: {
           type: "THINKING",
-          createAt: { lt: fifteenMinutesAgo }
+          createdAt: { lt: fifteenMinutesAgo }
         },
         select: {
           id: true,
           projectId: true,
-          createAt: true
+          createdAt: true
         }
       });
 
@@ -47,7 +47,7 @@ export const cleanupOrphanedThinkingMessages = inngest.createFunction(
         orphanedMessages.map(m => ({
           id: m.id,
           projectId: m.projectId,
-          age: Math.floor((Date.now() - m.createAt.getTime()) / 60000) + " minutes"
+          age: Math.floor((Date.now() - m.createdAt.getTime()) / 60000) + " minutes"
         }))
       );
 

@@ -7,7 +7,7 @@ import {
     FileCode,
     FileText,
     FileType,
-    Image,
+    Image as ImageIcon,
     Database,
     Lock,
     Package,
@@ -88,7 +88,7 @@ const getFileIcon = (filename: string, size: string = "w-4 h-4"): ReactNode => {
         case 'svg':
         case 'webp':
         case 'ico':
-            return <Image className={`${size} text-purple-400`} />;
+            return <ImageIcon className={`${size} text-purple-400`} />;
         case 'py':
             return <Hash className={`${size} text-yellow-500`} />;
         case 'sql':
