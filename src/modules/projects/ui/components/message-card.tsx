@@ -4,8 +4,8 @@ import { Fragment, MessageRole, MessageType } from "@/generated/prisma";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ChevronRightIcon, Code2Icon, CopyIcon, CheckIcon, AlertCircleIcon } from "lucide-react";
-import Image from "next/image";
 import ReactMarkdown from "react-markdown";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/hint";
 import { useState } from "react";
@@ -126,32 +126,16 @@ const AssistantMessage = ({
             {/* Avatar and header */}
             <div className="flex items-center gap-3 mb-3">
                 {/* Logo with glow effect */}
-                <div className="relative">
-                    <div className={cn(
-                        "absolute inset-0 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                        isError
-                            ? "bg-red-400/30"
-                            : "bg-gradient-to-br from-amber-400/40 to-orange-500/40"
-                    )} />
-                    <div className={cn(
-                        "relative size-9 rounded-full flex items-center justify-center ring-2 transition-all duration-300",
-                        isError
-                            ? "bg-red-100 dark:bg-red-900/30 ring-red-200/50 dark:ring-red-800/50"
-                            : "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 ring-amber-200/50 dark:ring-amber-700/50 group-hover:ring-amber-400/60"
-                    )}>
-                        {isError ? (
+                {isError ? (
+                    <div className="relative">
+                        <div className="absolute inset-0 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-red-400/30" />
+                        <div className="relative size-9 rounded-full flex items-center justify-center ring-2 transition-all duration-300 bg-red-100 dark:bg-red-900/30 ring-red-200/50 dark:ring-red-800/50">
                             <AlertCircleIcon className="size-4 text-red-500" />
-                        ) : (
-                            <Image
-                                src="/logo.svg"
-                                width={18}
-                                height={18}
-                                alt="Nova"
-                                className="shrink-0"
-                            />
-                        )}
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <Logo size={18} withContainer containerClassName="size-9 p-1.5 rounded-full ring-2" hover />
+                )}
 
                 {/* Name and timestamp */}
                 <div className="flex items-center gap-2">

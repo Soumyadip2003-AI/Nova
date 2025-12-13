@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { ChevronRight, Sparkles, Brain, Zap, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/logo";
 
 export interface ThinkingStep {
     title: string;
@@ -366,19 +366,7 @@ export const MessageLoading = ({ thinking }: MessageLoadingProps) => {
     return (
         <div className="flex flex-col group px-2 pb-4">
             <div className="flex items-center gap-2 pl-2 mb-3">
-                <div className="relative">
-                    <Image
-                        src="/logo.svg"
-                        alt="Nova"
-                        width={20}
-                        height={20}
-                        className="shrink-0"
-                    />
-                    <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
-                </div>
-                <span className="text-sm font-semibold">
-                    Nova
-                </span>
+                <Logo size={20} showText pulse />
             </div>
             <div className="pl-8 flex flex-col gap-y-4">
                 <ShimmerMessages thinking={thinking} />

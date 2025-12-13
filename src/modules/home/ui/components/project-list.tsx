@@ -4,8 +4,8 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import Image from "next/image";
 import { Loader2Icon, ClockIcon, FolderOpenIcon, TrashIcon, ArrowRightIcon } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -104,23 +104,7 @@ export const ProjectList = () => {
                             {/* Top row: Logo and Actions */}
                             <div className="flex items-start justify-between mb-4">
                                 {/* Logo */}
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
-                                    <div className={cn(
-                                        "relative size-12 rounded-xl flex items-center justify-center transition-all duration-300",
-                                        "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30",
-                                        "ring-1 ring-amber-200/50 dark:ring-amber-500/20",
-                                        "group-hover:ring-amber-500/50 group-hover:scale-105"
-                                    )}>
-                                        <Image
-                                            src="/logo.svg"
-                                            alt="Project"
-                                            width={28}
-                                            height={28}
-                                            className="transition-transform duration-300 group-hover:scale-110"
-                                        />
-                                    </div>
-                                </div>
+                                <Logo size={28} withContainer containerClassName="size-12 p-2" hover />
 
                                 {/* Action buttons */}
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
@@ -154,7 +138,7 @@ export const ProjectList = () => {
                                 "font-semibold text-lg mb-2 truncate transition-colors duration-300",
                                 "group-hover:text-amber-600 dark:group-hover:text-amber-400"
                             )}>
-                                {project.name}
+                                {project.messages[0]?.content || project.name}
                             </h3>
 
                             {/* Timestamp */}
