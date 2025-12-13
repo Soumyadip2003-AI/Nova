@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useTheme } from "next-themes";
+import { Logo } from "@/components/logo";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChevronDownIcon, ChevronLeftIcon, SunIcon, MoonIcon, MonitorIcon } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
@@ -47,12 +47,7 @@ export const ProjectHeader = ({ projectId }: Props) => {
                         )}
                     >
                         {/* Logo with glow effect */}
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-lg blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="relative size-7 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 flex items-center justify-center ring-1 ring-amber-200/50 dark:ring-amber-700/50">
-                                <Image src="/logo.svg" alt="Nova" width={16} height={16} />
-                            </div>
-                        </div>
+                        <Logo size={16} withContainer containerClassName="size-7 p-1.5" hover />
 
                         {/* Project name */}
                         <span className="text-sm font-semibold truncate max-w-[150px]">

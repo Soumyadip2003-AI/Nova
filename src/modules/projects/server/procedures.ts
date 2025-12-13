@@ -2,7 +2,6 @@ import { inngest } from "@/inngest/client";
 import { prisma } from "@/lib/db";
 import { protectedProcedure, createTRPCRouter } from "@/trpc/init";
 import { z } from "zod"
-import { generateSlug } from "random-word-slugs"
 import { TRPCError } from "@trpc/server";
 
 export const projectsRouter = createTRPCRouter({
@@ -19,7 +18,7 @@ export const projectsRouter = createTRPCRouter({
                     messages: {
                         take: 1,
                         orderBy: {
-                            createdAt: "asc",
+                            createdAt: "desc",
                         },
                         where: {
                             role: "USER",
@@ -57,13 +56,15 @@ export const projectsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input ,ctx}) => {
+            // Use first 50 characters of user message as project name
+            const projectName = input.value.length > 50
+                ? input.value.substring(0, 50) + "..."
+                : input.value;
 
             const createdProject = await prisma.project.create({
                 data: {
                     userId:ctx.auth.userId,
-                    name: generateSlug(2, {
-                        format: "kebab",
-                    }),
+                    name: projectName,
                     messages: {
                         create: {
                             content: input.value,

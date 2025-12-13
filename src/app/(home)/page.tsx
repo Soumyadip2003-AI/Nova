@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { ProjectForm } from "@/modules/home/ui/components/project-form";
 import { ProjectList } from "@/modules/home/ui/components/project-list";
 import { SignedIn } from "@clerk/nextjs";
+import { Logo } from "@/components/logo";
 
 const Page = () => {
   return (
@@ -17,18 +17,7 @@ const Page = () => {
 
         <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto px-4 space-y-8">
           {/* Logo with glow */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-            <div className="relative p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl border border-amber-200/50 dark:border-amber-500/20 shadow-xl">
-              <Image
-                src="/logo.svg"
-                alt="Nova"
-                width={56}
-                height={56}
-                className="drop-shadow-lg"
-              />
-            </div>
-          </div>
+          <Logo size={56} withContainer containerClassName="p-4 rounded-2xl border border-amber-200/50 dark:border-amber-500/20 shadow-xl" hover />
 
           {/* Headline with gradient */}
           <div className="text-center space-y-4">
