@@ -17,6 +17,7 @@ import { PROJECT_TEMPLATES } from "../../constants";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { formatDuration, intervalToDuration } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const formSchema = z.object({
     value: z.string()
@@ -29,6 +30,7 @@ export const ProjectForm = () => {
     const router = useRouter();
     const { isSignedIn } = useAuth();
     const [isFocused, setIsFocused] = useState(false);
+    const isMobile = useIsMobile();
 
     // Fetch usage status
     const { data: usage, refetch: refetchUsage } = useQuery({
@@ -205,7 +207,7 @@ export const ProjectForm = () => {
                             isFocused && "border-amber-500/30 dark:border-amber-500/30"
                         )}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 form.handleSubmit(onSubmit)(e);
@@ -236,7 +238,7 @@ export const ProjectForm = () => {
 
                         {/* Bottom bar */}
                         <div className="flex items-center justify-between pt-4 mt-2 border-t border-zinc-200/60 dark:border-zinc-800/60">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
                                 <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium">
                                     <span className="text-xs">⌘/Ctrl</span>
                                     <span>Enter</span>
