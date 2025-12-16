@@ -80,10 +80,10 @@ export const ProjectView = ({ projectId }: Props) => {
 
     return (
         <div className="h-screen bg-background">
-            <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"}>
+            <ResizablePanelGroup direction="horizontal">
                 {/* Left Panel - Messages */}
                 <ResizablePanel
-                    defaultSize={isMobile ? 75 : 35}
+                    defaultSize={isMobile ? 80 : 35}
                     minSize={isMobile ? 0 : 25}
                     maxSize={isMobile ? 100 : 50}
                     className="flex flex-col min-h-0"
@@ -116,7 +116,7 @@ export const ProjectView = ({ projectId }: Props) => {
 
                 {/* Right Panel - Preview/Code */}
                 <ResizablePanel
-                    defaultSize={isMobile ? 25 : 65}
+                    defaultSize={isMobile ? 20 : 65}
                     minSize={isMobile ? 0 : 50}
                 >
                     <Tabs
