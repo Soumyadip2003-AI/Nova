@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
 import { Hint } from "@/components/hint";
 import { Usage } from "./usage";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -34,6 +35,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
     const queryClient = useQueryClient();
     const [isCancelling, setIsCancelling] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const isMobile = useIsMobile();
 
     // Always poll usage status every 5 seconds to catch credit updates
     // Credits are consumed asynchronously in the background, so we need continuous polling
@@ -107,7 +109,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
 
     // Global keyboard shortcut for cancel
     useEffect(() => {
-        if (!isThinking) return;
+        if (!isThinking || isMobile) return;
 
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -119,7 +121,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
 
         document.addEventListener('keydown', handleGlobalKeyDown);
         return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [isThinking, handleStopThinking]);
+    }, [isThinking, handleStopThinking, isMobile]);
 
     return (
         <Form {...form}>
@@ -154,7 +156,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                         isFocused && "border-amber-500/30 dark:border-amber-500/30"
                     )}
                     onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
                             e.preventDefault();
                             e.stopPropagation();
                             if (isThinking) {
@@ -192,7 +194,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                     {/* Footer with actions */}
                     <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200/60 dark:border-zinc-800/60">
                         {/* Keyboard hint */}
-                        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
                             <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium shadow-sm">
                                 <span className="text-xs">⌘/Ctrl</span>
                                 <span>Enter</span>
