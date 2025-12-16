@@ -250,7 +250,7 @@ export const ProjectForm = () => {
                                 type="submit"
                                 disabled={isButtonDisabled}
                                 className={cn(
-                                    "h-10 px-4 rounded-xl font-medium transition-all duration-300",
+                                    "ml-auto h-10 px-4 rounded-xl font-medium transition-all duration-300",
                                     "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
                                     "text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40",
                                     "disabled:opacity-50 disabled:shadow-none disabled:from-zinc-400 disabled:to-zinc-500"
