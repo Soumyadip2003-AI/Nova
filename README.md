@@ -142,7 +142,7 @@ npm run dev
 npx inngest-cli@latest dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [https://nova-five-black.vercel.app/](https://nova-five-black.vercel.app/) in your browser.
 
 ---
 
@@ -525,7 +525,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Documentation**: [docs.example.com](https://docs.example.com)
 - **Issues**: [GitHub Issues](https://github.com/yourusername/nova/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/nova/discussions)
-- **Email**: support@example.com
+- **Email**: soumyadip.0202@gmail.com
 
 ---
 
