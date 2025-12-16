@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { PrismaClient } from './src/generated/prisma/index.js';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 
 neonConfig.webSocketConstructor = ws;
@@ -33,9 +33,7 @@ async function main() {
 
   // Match src/lib/db.ts approach exactly
   // src/lib/db.ts: const adapter = new PrismaNeon({ connectionString })
-  // Note: We need to cast it to any because TypeScript might complain if definitions mismatch, 
-  // but we want to test runtime behavior.
-  const adapter = new PrismaNeon({ connectionString } as any);
+  const adapter = new PrismaNeon({ connectionString });
   const prisma = new PrismaClient({ adapter });
 
   console.log("Checking Projects and their Messages...");

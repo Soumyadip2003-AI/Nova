@@ -56,6 +56,17 @@ export const projectsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input ,ctx}) => {
+            // Check if user has credits (but don't consume yet - will consume after successful generation)
+            const { getUsageStatus } = await import("@/lib/usage");
+            const usageStatus = await getUsageStatus();
+
+            if (usageStatus.remainingPoints < 1) {
+                throw new TRPCError({
+                    code: "TOO_MANY_REQUESTS",
+                    message: "You have run out of credits"
+                });
+            }
+
             // Use first 50 characters of user message as project name
             const projectName = input.value.length > 50
                 ? input.value.substring(0, 50) + "..."
@@ -81,6 +92,7 @@ export const projectsRouter = createTRPCRouter({
                     data: {
                         value: input.value,
                         projectId: createdProject.id,
+                        userId: ctx.auth.userId,
                     }
                 });
             } catch (error) {

@@ -7,12 +7,14 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import { ArrowUpIcon, Loader2Icon, Square, SparklesIcon } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
 import { Hint } from "@/components/hint";
+import { Usage } from "./usage";
+import { useRouter } from "next/navigation";
 
 interface Props {
     projectId: string;
@@ -28,9 +30,18 @@ const formSchema = z.object({
 
 export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }: Props) => {
     const trpc = useTRPC();
+    const router = useRouter();
     const queryClient = useQueryClient();
     const [isCancelling, setIsCancelling] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+
+    // Always poll usage status every 5 seconds to catch credit updates
+    // Credits are consumed asynchronously in the background, so we need continuous polling
+    const { data: usage } = useQuery({
+        ...trpc.usage.status.queryOptions(),
+        refetchInterval: 5000, // Poll every 5s to catch async credit consumption
+    });
+    const showUsage = !!usage;
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -40,8 +51,22 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
     });
 
     const createMessage = useMutation(trpc.messages.create.mutationOptions({
+        onSuccess: () => {
+            // Invalidate queries after successful message creation
+            queryClient.invalidateQueries(
+                trpc.messages.getMany.queryOptions({ projectId }),
+            );
+            queryClient.invalidateQueries(
+                trpc.usage.status.queryOptions(),
+            );
+        },
         onError: (error) => {
             toast.error(error.message);
+
+            if(error.data?.code=== "TOO_MANY_REQUESTS")
+            {
+                router.push("/pricing");
+            }
         },
     }));
 
@@ -51,9 +76,6 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
             value: values.value,
             projectId,
         });
-        queryClient.invalidateQueries(
-            trpc.messages.getMany.queryOptions({ projectId }),
-        );
     };
 
     const handleStopThinking = useCallback(async () => {
@@ -101,6 +123,14 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
 
     return (
         <Form {...form}>
+            {showUsage && (
+                <Usage
+                    points={usage.remainingPoints}
+                    msBeforeNext={usage.msBeforeNext}
+                    plan={usage.plan}
+                    totalCredits={usage.totalCredits}
+                />
+            )}
             <div className="relative group">
                 {/* Animated gradient border */}
                 <div className={cn(

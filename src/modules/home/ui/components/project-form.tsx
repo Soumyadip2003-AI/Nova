@@ -5,9 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import TextareaAutosize from "react-textarea-autosize";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useState } from "react";
-import { ArrowUpIcon, Loader2Icon, SparklesIcon } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { ArrowUpIcon, Loader2Icon, SparklesIcon, CrownIcon } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { Form, FormField } from "@/components/ui/form";
 import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES } from "../../constants";
 import { useAuth } from "@clerk/nextjs";
+import Link from "next/link";
+import { formatDuration, intervalToDuration } from "date-fns";
 
 const formSchema = z.object({
     value: z.string()
@@ -28,6 +30,35 @@ export const ProjectForm = () => {
     const { isSignedIn } = useAuth();
     const [isFocused, setIsFocused] = useState(false);
 
+    // Fetch usage status
+    const { data: usage, refetch: refetchUsage } = useQuery({
+        ...trpc.usage.status.queryOptions(),
+        enabled: isSignedIn,
+    });
+
+    const hasCredits = usage ? usage.remainingPoints > 0 : true;
+    const isOutOfCredits = usage ? usage.remainingPoints <= 0 : false;
+
+    // Live countdown timer state
+    const [now, setNow] = useState(new Date());
+    const [resetDate, setResetDate] = useState<Date | null>(null);
+
+    // Update resetDate when usage data changes
+    useEffect(() => {
+        if (usage?.msBeforeNext) {
+            setResetDate(new Date(Date.now() + usage.msBeforeNext));
+        }
+    }, [usage?.msBeforeNext]);
+
+    // Update 'now' every second for live countdown
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setNow(new Date());
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -36,8 +67,9 @@ export const ProjectForm = () => {
     });
 
     const createProject = useMutation(trpc.projects.create.mutationOptions({
-        onSuccess: (data) => {
-            router.push(`/projects/${data.id}`);
+        onSuccess: () => {
+            // Refetch usage after successful project creation
+            refetchUsage();
         },
         onError: (error) => {
             toast.error(error.message);
@@ -52,8 +84,27 @@ export const ProjectForm = () => {
             return;
         }
 
+        // Check if user has credits
+        if (!hasCredits) {
+            toast.error("You have run out of credits. Please upgrade to continue.");
+            return;
+        }
+
+        // Store the value before resetting
+        const submittedValue = values.value;
         form.reset({ value: "" });
-        createProject.mutate({ value: values.value });
+
+        // Optimistic mutation: start the mutation and get the promise
+        const mutationPromise = createProject.mutateAsync({ value: submittedValue });
+
+        // Wait for the mutation to complete and get the project ID
+        mutationPromise.then((data) => {
+            // Navigate immediately once we have the project ID
+            router.push(`/projects/${data.id}`);
+        }).catch((error) => {
+            // Error already handled by onError callback
+            console.error("Project creation failed:", error);
+        });
     };
 
     const onSelect = (value: string) => {
@@ -64,12 +115,72 @@ export const ProjectForm = () => {
         });
     };
 
-    const isButtonDisabled = !form.formState.isValid || createProject.isPending;
+    const isButtonDisabled = !form.formState.isValid || createProject.isPending || (isSignedIn && isOutOfCredits);
     const isSubmitting = createProject.isPending;
 
     return (
         <Form {...form}>
             <section className="space-y-5">
+                {/* Usage Display for signed-in users */}
+                {isSignedIn && usage && (
+                    <div className={cn(
+                        "rounded-xl p-4 transition-all duration-300",
+                        "bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm",
+                        "border",
+                        isOutOfCredits
+                            ? "border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20"
+                            : usage.plan === "PRO"
+                                ? "border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20"
+                                : "border-zinc-200/80 dark:border-zinc-800/80"
+                    )}>
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                {usage.plan === "PRO" && (
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <CrownIcon className="size-3.5 text-amber-500" />
+                                        <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Pro Plan</span>
+                                    </div>
+                                )}
+                                {isOutOfCredits ? (
+                                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                                        You have run out of credits
+                                    </p>
+                                ) : (
+                                    <p className="text-sm text-foreground">
+                                        <span className="font-semibold">{usage.remainingPoints}</span>
+                                        {usage.plan === "PRO" ? "" : " free"} credit{usage.remainingPoints !== 1 ? 's' : ''} remaining
+                                        {usage.totalCredits && (
+                                            <span className="text-muted-foreground"> / {usage.totalCredits}</span>
+                                        )}
+                                    </p>
+                                )}
+                                {resetDate && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        Resets in {formatDuration(
+                                            intervalToDuration({
+                                                start: now,
+                                                end: resetDate,
+                                            }),
+                                            { format: ["days", "hours", "minutes", "seconds"] }
+                                        )}
+                                    </p>
+                                )}
+                            </div>
+                            {usage.plan !== "PRO" && (
+                                <Button
+                                    asChild
+                                    size="sm"
+                                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all duration-300"
+                                >
+                                    <Link href="/pricing">
+                                        <CrownIcon className="size-4 mr-1.5" /> Upgrade
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Main Form Container */}
                 <div className="relative group">
                     {/* Animated gradient border */}
