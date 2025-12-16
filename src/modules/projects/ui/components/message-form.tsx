@@ -192,12 +192,12 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                     {/* Footer with actions */}
                     <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200/60 dark:border-zinc-800/60">
                         {/* Keyboard hint */}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
                             <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium shadow-sm">
                                 <span className="text-xs">⌘/Ctrl</span>
                                 <span>Enter</span>
                             </kbd>
-                            <span className="hidden sm:inline">to {isThinking ? "cancel" : "send"}</span>
+                            <span>to {isThinking ? "cancel" : "send"}</span>
                         </div>
 
                         {/* Action buttons */}

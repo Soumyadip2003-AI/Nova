@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { MessagesContainer } from "../components/messages-container";
 import { Suspense, useState } from "react";
@@ -61,10 +62,14 @@ const EmptyPreviewState = () => (
     </div>
 );
 
+
+
 export const ProjectView = ({ projectId }: Props) => {
     const [activeFragment, setActiveFragment] = useState<Fragment | null>(null);
     const [tabState, setTabState] = useState<"preview" | "code">("preview");
     const trpc = useTRPC();
+    const isMobile = useIsMobile();
+    
     // Ensure project exists and is hydrated from server prefetch
     useSuspenseQuery({
         ...trpc.projects.getOne.queryOptions({
@@ -75,12 +80,12 @@ export const ProjectView = ({ projectId }: Props) => {
 
     return (
         <div className="h-screen bg-background">
-            <ResizablePanelGroup direction="horizontal">
+            <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"}>
                 {/* Left Panel - Messages */}
                 <ResizablePanel
-                    defaultSize={35}
-                    minSize={25}
-                    maxSize={50}
+                    defaultSize={isMobile ? 40 : 35}
+                    minSize={isMobile ? 30 : 25}
+                    maxSize={isMobile ? 50 : 50}
                     className="flex flex-col min-h-0"
                 >
                     {/* Gradient background for left panel */}

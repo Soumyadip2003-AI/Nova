@@ -50,7 +50,7 @@ export const ProjectHeader = ({ projectId }: Props) => {
                         <Logo size={16} withContainer containerClassName="size-7 p-1.5" hover />
 
                         {/* Project name */}
-                        <span className="text-sm font-semibold truncate max-w-[150px]">
+                        <span className="text-sm font-semibold truncate max-w-[100px] sm:max-w-[150px]">
                             {project.name}
                         </span>
 
