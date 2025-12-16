@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Live Demo](https://your-demo-url.com) · [Report Bug](https://github.com/yourusername/nova/issues) · [Request Feature](https://github.com/yourusername/nova/issues)
+[Live Demo](https://nova-five-black.vercel.app/) · [Report Bug](https://github.com/yourusername/nova/issues) · [Request Feature](https://github.com/yourusername/nova/issues)
 
 </div>
 
