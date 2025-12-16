@@ -65,3 +65,14 @@ model Fragment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+enum UserPlan {
+  FREE
+  PRO
+}
+
+model Usage {
+  key     String   @id
+  points  Int
+  expire  DateTime
+  plan    UserPlan @default(FREE)
+}

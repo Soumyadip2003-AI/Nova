@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { inngest } from "./client";
-import {  openai, createAgent, createTool, createNetwork, type Tool } from "@inngest/agent-kit";
+import {  openai, createAgent, createTool, createNetwork, createState, type Tool } from "@inngest/agent-kit";
 import { Sandbox} from "@e2b/code-interpreter"
 import { getSandbox, lastAssistantTextMessageContent } from "./utils";
-import { PROMPT } from '@/prompt';
+import { PROMPT, RESPONSE_PROMPT, FRAGMENT_TITLE_PROMPT } from '@/prompt';
 import { prisma } from '@/lib/db';
 import {
   createThinkingMessage,
@@ -38,12 +38,25 @@ export const codeAgentFunction = inngest.createFunction(
         // In onFailure, event structure is nested: event.data.event.data contains original data
         const originalEvent = event.data?.event;
         const projectId = originalEvent?.data?.projectId;
+        const userId = originalEvent?.data?.userId;
 
-        console.log("Cleaning up after failure:", { projectId, error: error.message });
+        console.log("Cleaning up after failure:", { projectId, userId, error: error.message });
 
         if (!projectId) {
           console.error("No projectId found in event data for cleanup");
           return;
+        }
+
+        // Refund credits if they were consumed before the failure
+        if (userId) {
+          try {
+            const { refundCreditsForUser } = await import("@/lib/usage");
+            await refundCreditsForUser(userId);
+            console.log("✓ Credits refunded after generation failure");
+          } catch (refundError) {
+            console.error("✗ Failed to refund credits after generation failure:", refundError);
+            // Continue with cleanup even if refund fails
+          }
         }
 
         // Determine appropriate error type based on error message
@@ -91,6 +104,29 @@ export const codeAgentFunction = inngest.createFunction(
       return await createThinkingMessage(event.data.projectId);
     });
 
+    // CRITICAL: Consume credits BEFORE starting expensive generation
+    // This prevents free generations if credit consumption fails later
+    // Credits will be refunded via onFailure handler if generation fails
+    await step.run("consume-credits", async () => {
+      const { consumeCreditsForUser } = await import("@/lib/usage");
+      try {
+        await consumeCreditsForUser(event.data.userId);
+        console.log("✓ Credits consumed upfront before generation");
+      } catch (error) {
+        console.error("✗ Failed to consume credits before generation:", error);
+        throw new Error("Failed to consume credits. Please try again.");
+      }
+    });
+
+    // Get project name for later use
+    const projectName = await step.run("get-project-name", async () => {
+      const project = await prisma.project.findUnique({
+        where: { id: event.data.projectId },
+        select: { name: true },
+      });
+      return project?.name || "Fragment";
+    });
+
     const sandboxId = await step.run("get-sandbox-id",async ()=>{
       try {
         await addThinkingStep(
@@ -98,9 +134,22 @@ export const codeAgentFunction = inngest.createFunction(
           "Setting up environment",
           `Creating isolated development environment for: "${event.data.value}"`
         );
+
+        // Check if user is Pro to set appropriate sandbox timeout
+        const { getUsageStatusForUser } = await import("@/lib/usage");
+        const usageStatus = await getUsageStatusForUser(event.data.userId);
+        const isPro = usageStatus.plan === "PRO";
+
         // Use template ID (more reliable) or fall back to template name
         const templateId = process.env.E2B_TEMPLATE_ID || "c7kxk6kebmrc9xzxb09f";
-        const sandbox= await Sandbox.create(templateId);
+
+        // Pro users get 20 minutes (1200000ms), Free users get default timeout
+        if (isPro) {
+          console.log("✨ Pro user detected - setting 20 minute sandbox timeout");
+        }
+        const sandbox = isPro
+          ? await Sandbox.create(templateId, { timeoutMs: 1200000 })
+          : await Sandbox.create(templateId);
 
         // Load existing files from previous project state
         const existingProject = await prisma.message.findFirst({
@@ -206,22 +255,17 @@ export const codeAgentFunction = inngest.createFunction(
             {step, network}:Tool.Options<AgentState>
           )=>{
             const newFiles = await step?.run ("createOrUpdateFiles", async() => {
-              try{
-                const updatedFiles = network.state.data.files ||{};
-                const sandbox= await getSandbox(sandboxId);
-                for(const file of files){
-                  await sandbox.files.write(file.path, file.content);
-                  updatedFiles[file.path]= file.content;
-                }
-                return updatedFiles;
-
-              }catch(e){
-                return "Error:" +e;
-
+              const updatedFiles = network.state.data.files ||{};
+              const sandbox= await getSandbox(sandboxId);
+              for(const file of files){
+                await sandbox.files.write(file.path, file.content);
+                updatedFiles[file.path]= file.content;
               }
+              return updatedFiles;
             });
-            if(typeof newFiles === "object"){
-              network.state.data.files= newFiles;
+            // Always update state with the new files object (with fallback for safety)
+            if (newFiles) {
+              network.state.data.files = newFiles;
             }
           }
         }),
@@ -271,7 +315,11 @@ export const codeAgentFunction = inngest.createFunction(
     const network= createNetwork<AgentState>({
       name: "coding-agent-network",
       agents: [codeAgent],
-      maxIter: 15,
+      maxIter: 30, // Increased from 15 to allow more complex generations
+      defaultState: createState<AgentState>({
+        summary: "",
+        files: {},
+      }),
       router: async ({network}) =>{
         const summary = network.state.data.summary;
         if (summary){
@@ -294,6 +342,7 @@ export const codeAgentFunction = inngest.createFunction(
       });
 
       // Run the agent network - this is the long-running operation
+      console.log("Starting agent network run with input:", event.data.value.substring(0, 100));
       const result = await network.run(event.data.value);
 
       // Complete the "Writing code" step after agent finishes
@@ -301,9 +350,32 @@ export const codeAgentFunction = inngest.createFunction(
         await completeCurrentThinkingStep(thinkingMessage.id);
       });
 
-      const isError =
-        !result.state.data.summary ||
-        Object.keys(result.state.data.files || {}).length == 0;
+      // Log the result for debugging
+      console.log("Agent result (full state):", JSON.stringify({
+        stateData: result.state.data,
+        stateDataFiles: result.state.data?.files,
+        stateDataSummary: result.state.data?.summary,
+        hasStateData: !!result.state.data,
+      }, null, 2));
+      console.log("Agent result:", {
+        hasFiles: Object.keys(result.state.data.files || {}).length,
+        hasSummary: !!result.state.data.summary,
+        files: Object.keys(result.state.data.files || {}),
+      });
+
+      // Consider it an error only if NO files were created
+      // (Summary is optional - we'll generate a fallback if needed)
+      const files = result.state.data.files || {};
+      const hasFiles = Object.keys(files).length > 0;
+      const isError = !hasFiles;
+
+      console.log("=== FILE CHECK ===");
+      console.log("isError:", isError);
+      console.log("hasFiles:", hasFiles);
+      console.log("files object:", files);
+      console.log("file count:", Object.keys(files).length);
+      console.log("file paths:", Object.keys(files));
+      console.log("=================");
 
       const sandboxUrl = await step.run("get-sandbox-url", async () => {
         await addThinkingStep(
@@ -320,49 +392,132 @@ export const codeAgentFunction = inngest.createFunction(
       });
 
       await step.run("save-result", async () => {
-        // Delete thinking message before creating final result
-        await deleteThinkingMessage(thinkingMessage.id);
+        try {
+          console.log("=== SAVE-RESULT STEP START ===");
+          console.log("isError:", isError);
+          console.log("files count:", Object.keys(files).length);
+          console.log("sandboxUrl:", sandboxUrl);
 
-        if (isError) {
-          return await prisma.message.create({
-            data: {
-              projectId: event.data.projectId,
-              content: "Something went wrong. Please try again.",
-              role: "ASSISTANT",
-              type: "ERROR",
+          // Delete thinking message before creating final result
+          await deleteThinkingMessage(thinkingMessage.id);
+          console.log("Thinking message deleted");
 
-            },
-          });
-        }
+          if (isError) {
+            console.log("Creating ERROR message - no files were generated");
+            // Credits already consumed - will be refunded by onFailure handler
+            throw new Error("Code generation failed - no files were created");
+          }
 
-        return await prisma.message.create({
-          data: {
-            projectId: event.data.projectId,
-            content: result.state.data.summary,
-            role: "ASSISTANT",
-            type: "RESULT",
-            fragment: {
-              create: {
-                sandboxUrl: sandboxUrl,
-                title: "Fragment",
-                files: result.state.data.files,
-              },
+          // Credits were already consumed upfront before generation started
+          console.log("✓ Credits already consumed - generation successful");
+
+          // Process the task summary to generate user-friendly content
+          const taskSummary = result.state.data.summary;
+          let userFriendlySummary: string;
+          let fragmentTitle: string;
+
+          if (!taskSummary) {
+            // No task summary - generate basic fallback
+            const fileCount = Object.keys(files).length;
+            const fileList = Object.keys(files).slice(0, 5).join(", ");
+            userFriendlySummary = `Successfully generated ${fileCount} file${fileCount !== 1 ? 's' : ''} including: ${fileList}${fileCount > 5 ? ', and more' : ''}.`;
+            fragmentTitle = projectName;
+            console.log("Generated fallback summary (no AI summary)");
+          } else {
+            // We have a task summary - use AI to generate better user-facing content
+            console.log("Using AI to generate user-friendly summary and title from task_summary");
+
+            try {
+              // Use OpenAI directly via the SDK to generate user-friendly content
+              const { OpenAI } = await import('openai');
+              const openaiClient = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY,
+              });
+
+              // Generate user-friendly summary using RESPONSE_PROMPT
+              const summaryCompletion = await openaiClient.chat.completions.create({
+                model: "gpt-4o-mini",
+                temperature: 0.7,
+                messages: [
+                  { role: "system", content: RESPONSE_PROMPT },
+                  { role: "user", content: taskSummary }
+                ],
+              });
+
+              // Generate fragment title using FRAGMENT_TITLE_PROMPT
+              const titleCompletion = await openaiClient.chat.completions.create({
+                model: "gpt-4o-mini",
+                temperature: 0.5,
+                messages: [
+                  { role: "system", content: FRAGMENT_TITLE_PROMPT },
+                  { role: "user", content: taskSummary }
+                ],
+              });
+
+              userFriendlySummary = summaryCompletion.choices[0]?.message?.content?.trim() || taskSummary.replace(/<task_summary[^>]*>/g, '').replace(/<\/task_summary>/g, '').trim();
+              fragmentTitle = titleCompletion.choices[0]?.message?.content?.trim() || projectName;
+
+              console.log("✓ Generated user-friendly summary:", userFriendlySummary);
+              console.log("✓ Generated fragment title:", fragmentTitle);
+            } catch (error) {
+              console.error("Failed to generate AI summaries, using fallback:", error);
+              userFriendlySummary = taskSummary.replace(/<task_summary[^>]*>/g, '').replace(/<\/task_summary>/g, '').trim();
+              fragmentTitle = projectName;
             }
           }
-        })
+
+          console.log("Creating SUCCESS message with", Object.keys(files).length, "files");
+          console.log("Files to save:", Object.keys(files));
+
+          const message = await prisma.message.create({
+            data: {
+              projectId: event.data.projectId,
+              content: userFriendlySummary,
+              role: "ASSISTANT",
+              type: "RESULT",
+              fragment: {
+                create: {
+                  sandboxUrl: sandboxUrl,
+                  title: fragmentTitle,
+                  files: files,
+                },
+              }
+            }
+          });
+
+          console.log("✓ SUCCESS message created with ID:", message.id);
+          console.log("=== SAVE-RESULT STEP END ===");
+          return message;
+        } catch (error) {
+          console.error("!!! ERROR in save-result step:", error);
+          console.error("Error stack:", error instanceof Error ? error.stack : "no stack");
+          throw error;
+        }
       })
 
       // summary stop.
 
       return {
         url: sandboxUrl,
-        title: "Fragment",
-        files: result.state.data.files,
+        title: projectName,
+        files: files,
         summary: result.state.data.summary,
 
       };
     } catch (error) {
       console.error("Agent execution failed:", error);
+
+      // Refund credits since generation failed
+      await step.run("refund-credits", async () => {
+        try {
+          const { refundCreditsForUser } = await import("@/lib/usage");
+          await refundCreditsForUser(event.data.userId);
+          console.log("✓ Credits refunded after generation failure");
+        } catch (refundError) {
+          console.error("✗ Failed to refund credits:", refundError);
+          // Continue with cleanup even if refund fails
+        }
+      });
 
       // Delete thinking message on error
       await step.run("cleanup-thinking", async () => {
@@ -386,7 +541,7 @@ export const codeAgentFunction = inngest.createFunction(
           },
         });
       });
-      throw error; // Re-throw to ensure Inngest marks it as failed
+      throw error; // Re-throw to ensure Inngest marks it as failed and triggers onFailure
     }
   },
 );

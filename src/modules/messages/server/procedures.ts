@@ -57,6 +57,19 @@ export const messagesRouter = createTRPCRouter({
             const isQuestion = isDefinitelyQuestion(input.value);
 
             if (isQuestion) {
+                // Check and consume credits BEFORE processing
+                // This prevents free questions if credit consumption fails later
+                const { consumeCreditsForUser } = await import("@/lib/usage");
+                try {
+                    await consumeCreditsForUser(ctx.auth.userId);
+                    console.log("✓ Credits consumed upfront before question processing");
+                } catch {
+                    throw new TRPCError({
+                        code: "TOO_MANY_REQUESTS",
+                        message: "You have run out of credits"
+                    });
+                }
+
                 // Handle as a chat/question - fast path without Inngest
                 const userMessage = await prisma.message.create({
                     data: {
@@ -70,6 +83,9 @@ export const messagesRouter = createTRPCRouter({
                 // Create thinking message for immediate user feedback
                 const thinkingMessage = await createThinkingMessage(input.projectId);
 
+                // Store userId for background processing
+                const userId = ctx.auth.userId;
+
                 // Process response asynchronously (don't await - return immediately)
                 setImmediate(() => {
                     (async () => {
@@ -79,6 +95,9 @@ export const messagesRouter = createTRPCRouter({
 
                             // Delete thinking message
                             await deleteThinkingMessage(thinkingMessage.id);
+
+                            // Credits were already consumed upfront
+                            console.log("✓ Question processed successfully - credits already consumed");
 
                             // Save assistant response
                             await prisma.message.create({
@@ -90,6 +109,15 @@ export const messagesRouter = createTRPCRouter({
                                 },
                             });
                         } catch (error) {
+                            // Refund credits since processing failed
+                            const { refundCreditsForUser } = await import("@/lib/usage");
+                            try {
+                                await refundCreditsForUser(userId);
+                                console.log("✓ Credits refunded after question processing failure");
+                            } catch (refundError) {
+                                console.error("✗ Failed to refund credits:", refundError);
+                            }
+
                             // Delete thinking message on error
                             await deleteThinkingMessage(thinkingMessage.id);
 
@@ -103,13 +131,24 @@ export const messagesRouter = createTRPCRouter({
                                 },
                             });
 
-                            console.error("Chat response error:", error);
+                            console.error("Chat response error (credits refunded):", error);
                         }
                     })();
                 });
 
                 // Return immediately after creating thinking message
                 return userMessage;
+            }
+
+            // Check if user has credits (but don't consume yet - will consume after successful generation)
+            const { getUsageStatus } = await import("@/lib/usage");
+            const usageStatus = await getUsageStatus();
+
+            if (usageStatus.remainingPoints < 1) {
+                throw new TRPCError({
+                    code: "TOO_MANY_REQUESTS",
+                    message: "You have run out of credits"
+                });
             }
 
             // Handle as a code generation request - uses Inngest
@@ -128,6 +167,7 @@ export const messagesRouter = createTRPCRouter({
                     data: {
                         value: input.value,
                         projectId: input.projectId,
+                        userId: ctx.auth.userId,
                     }
                 });
             } catch (error) {
