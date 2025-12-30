@@ -11,7 +11,9 @@ import {
   completeCurrentThinkingStep,
   deleteThinkingMessage,
   cleanupThinkingMessageWithError,
-  ThinkingErrorType
+  ThinkingErrorType,
+  addReasoningStep,
+  setThinkingModelMetadata
 } from '@/lib/thinking-helpers';
 
 interface AgentState{
@@ -99,9 +101,19 @@ export const codeAgentFunction = inngest.createFunction(
   },
   { event: "code-agent/run" },
   async ({ event , step}) => {
+    // Get the selected model from event data (defaults to gpt-4o-mini for safety)
+    const selectedModel = event.data.model || "gpt-4o-mini";
+
+    // Check if this is a reasoning model (o1 family)
+    const { isReasoningModel } = await import("@/lib/models");
+    const useReasoningModel = isReasoningModel(selectedModel);
+
     // Create thinking message to track progress
     const thinkingMessage = await step.run("create-thinking", async () => {
-      return await createThinkingMessage(event.data.projectId);
+      const msg = await createThinkingMessage(event.data.projectId);
+      // Set model metadata so UI knows what type of model is being used
+      await setThinkingModelMetadata(msg.id, selectedModel, useReasoningModel);
+      return msg;
     });
 
     // CRITICAL: Consume credits BEFORE starting expensive generation
@@ -194,12 +206,16 @@ export const codeAgentFunction = inngest.createFunction(
       await completeCurrentThinkingStep(thinkingMessage.id);
     });
 
+    // Track iteration count for progress updates
+    let iterationCount = 0;
+    const maxIterations = 30;
+
     const codeAgent = createAgent<AgentState>({
       name: "code-agent",
       system: PROMPT,
       description: "An expert coding agent",
       model: openai({
-        model: "gpt-5.1",
+        model: selectedModel,
         defaultParameters:{
           temperature: 0.1,
         }
@@ -295,19 +311,40 @@ export const codeAgentFunction = inngest.createFunction(
         })
       ],
       lifecycle:{
-        onResponse: async ({result,network})=>{
-          const lastAssistantMessageText =
-          lastAssistantTextMessageContent(result);
+        onResponse: async ({result, network}) => {
+          iterationCount++;
+          const lastAssistantMessageText = lastAssistantTextMessageContent(result);
 
-          if(lastAssistantMessageText && network){
-            if(lastAssistantMessageText.includes("<task_summary")){
+          // Update thinking message with progress
+          try {
+            const { updateCurrentThinkingStepContent } = await import('@/lib/thinking-helpers');
+            const progress = Math.min(Math.round((iterationCount / maxIterations) * 100), 95);
+
+            if (useReasoningModel) {
+              // For reasoning models, show reasoning progress
+              await updateCurrentThinkingStepContent(
+                thinkingMessage.id,
+                `Reasoning through the problem... (${progress}% - iteration ${iterationCount})`
+              );
+            } else {
+              // For standard models, show what's happening
+              const filesCreated = network ? Object.keys(network.state.data.files || {}).length : 0;
+              await updateCurrentThinkingStepContent(
+                thinkingMessage.id,
+                `Writing code... ${filesCreated > 0 ? `Created ${filesCreated} file${filesCreated > 1 ? 's' : ''}` : 'Analyzing requirements'} (${progress}%)`
+              );
+            }
+          } catch (e) {
+            // Don't fail if update fails
+            console.log("Could not update thinking step:", e);
+          }
+
+          if (lastAssistantMessageText && network) {
+            if (lastAssistantMessageText.includes("<task_summary")) {
               network.state.data.summary = lastAssistantMessageText;
-              // Don't complete step here - let the outer flow handle it
-              // This allows proper sequencing: Writing code → Preparing preview → Done
             }
           }
           return result;
-
         },
       }
     });
@@ -332,22 +369,50 @@ export const codeAgentFunction = inngest.createFunction(
     });
 
     try {
-      // Add "Writing code" step before agent starts
+      // Add thinking step before agent starts - different messaging for reasoning models
       await step.run("start-generation", async () => {
-        await addThinkingStep(
-          thinkingMessage.id,
-          "Writing code",
-          "Generating clean, production-ready code with GPT-5.1..."
-        );
+        const { getModelInfo } = await import("@/lib/models");
+        const modelInfo = getModelInfo(selectedModel);
+        const modelName = modelInfo?.name || selectedModel;
+
+        if (useReasoningModel) {
+          // For o1 models, show that the model is reasoning through the problem
+          await addThinkingStep(
+            thinkingMessage.id,
+            "Reasoning",
+            `${modelName} is analyzing and reasoning through your request. This model thinks step-by-step before generating code...`
+          );
+        } else {
+          await addThinkingStep(
+            thinkingMessage.id,
+            "Writing code",
+            `Generating clean, production-ready code with ${modelName}...`
+          );
+        }
       });
 
       // Run the agent network - this is the long-running operation
       console.log("Starting agent network run with input:", event.data.value.substring(0, 100));
       const result = await network.run(event.data.value);
 
-      // Complete the "Writing code" step after agent finishes
+      // Complete the thinking/reasoning step and add reasoning details for o1 models
       await step.run("complete-generation", async () => {
         await completeCurrentThinkingStep(thinkingMessage.id);
+
+        // For reasoning models, add a step showing the reasoning was completed
+        if (useReasoningModel) {
+          // Try to extract reasoning summary from the task_summary if available
+          const taskSummary = result.state.data.summary || '';
+          const reasoningSummary = taskSummary
+            ? `The model analyzed your request and determined the best approach. Key decisions made during reasoning are reflected in the generated code.`
+            : `Reasoning complete. The model has thought through the problem and generated a solution.`;
+
+          await addReasoningStep(
+            thinkingMessage.id,
+            "Reasoning Complete",
+            reasoningSummary
+          );
+        }
       });
 
       // Log the result for debugging

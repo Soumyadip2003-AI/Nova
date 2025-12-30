@@ -114,7 +114,8 @@ async function getConversationHistory(projectId: string, limit = 10): Promise<Ch
  */
 export async function generateChatResponse(
   projectId: string,
-  userMessage: string
+  userMessage: string,
+  model?: string
 ): Promise<string> {
   // Get project context
   const context = await getProjectContext(projectId);
@@ -168,9 +169,10 @@ export async function generateChatResponse(
   // Add current user message
   messages.push({ role: "user", content: userMessage });
 
-  // Generate response
+  // Generate response using provided model or default to gpt-4o-mini
+  const chatModel = model || "gpt-4o-mini";
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini", // Fast and cheap for chat
+    model: chatModel,
     messages,
     temperature: 0.7,
     max_tokens: 1500,

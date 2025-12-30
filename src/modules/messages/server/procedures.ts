@@ -41,17 +41,24 @@ export const messagesRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            // Verify the project belongs to the user
+            // Verify the project belongs to the user and get its model
             const existingproject = await prisma.project.findUnique({
                 where: {
                     id: input.projectId,
                     userId: ctx.auth.userId,
+                },
+                select: {
+                    id: true,
+                    model: true,
                 },
             });
 
             if (!existingproject) {
                 throw new TRPCError( {code: "NOT_FOUND", message: "Project not found"})
             }
+
+            // Get the project's selected model
+            const projectModel = existingproject.model || "gpt-4o-mini";
 
             // Check if this is a question or a code generation request
             const isQuestion = isDefinitelyQuestion(input.value);
@@ -90,8 +97,8 @@ export const messagesRouter = createTRPCRouter({
                 setImmediate(() => {
                     (async () => {
                         try {
-                            // Generate chat response
-                            const chatResponse = await generateChatResponse(input.projectId, input.value);
+                            // Generate chat response with project's model
+                            const chatResponse = await generateChatResponse(input.projectId, input.value, projectModel);
 
                             // Delete thinking message
                             await deleteThinkingMessage(thinkingMessage.id);
@@ -168,6 +175,7 @@ export const messagesRouter = createTRPCRouter({
                         value: input.value,
                         projectId: input.projectId,
                         userId: ctx.auth.userId,
+                        model: projectModel,
                     }
                 });
             } catch (error) {

@@ -53,11 +53,13 @@ export const projectsRouter = createTRPCRouter({
                 value: z.string()
                 .min(1, { message: "Value is required" })
                 .max(10000, { message: "Value is too long" }),
+                model: z.string().optional(),
             }),
         )
         .mutation(async ({ input ,ctx}) => {
             // Check if user has credits (but don't consume yet - will consume after successful generation)
             const { getUsageStatus } = await import("@/lib/usage");
+            const { isModelAvailable, getDefaultModel } = await import("@/lib/models");
             const usageStatus = await getUsageStatus();
 
             if (usageStatus.remainingPoints < 1) {
@@ -65,6 +67,13 @@ export const projectsRouter = createTRPCRouter({
                     code: "TOO_MANY_REQUESTS",
                     message: "You have run out of credits"
                 });
+            }
+
+            // Validate and determine model based on user plan
+            const isPro = usageStatus.plan === "PRO";
+            let selectedModel = input.model;
+            if (!selectedModel || !isModelAvailable(selectedModel, isPro)) {
+                selectedModel = getDefaultModel(isPro);
             }
 
             // Use first 50 characters of user message as project name
@@ -76,6 +85,7 @@ export const projectsRouter = createTRPCRouter({
                 data: {
                     userId:ctx.auth.userId,
                     name: projectName,
+                    model: selectedModel,
                     messages: {
                         create: {
                             content: input.value,
@@ -93,6 +103,7 @@ export const projectsRouter = createTRPCRouter({
                         value: input.value,
                         projectId: createdProject.id,
                         userId: ctx.auth.userId,
+                        model: selectedModel,
                     }
                 });
             } catch (error) {
@@ -132,5 +143,49 @@ export const projectsRouter = createTRPCRouter({
             });
 
             return { success: true };
+        }),
+    updateModel: protectedProcedure
+        .input(
+            z.object({
+                id: z.string().min(1, { message: "ID is required" }),
+                model: z.string().min(1, { message: "Model is required" }),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            const { isModelAvailable } = await import("@/lib/models");
+            const { getUsageStatus } = await import("@/lib/usage");
+
+            // Verify project ownership
+            const existingProject = await prisma.project.findUnique({
+                where: {
+                    id: input.id,
+                    userId: ctx.auth.userId,
+                },
+            });
+
+            if (!existingProject) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Project not found",
+                });
+            }
+
+            // Validate model based on user plan
+            const usageStatus = await getUsageStatus();
+            const isPro = usageStatus.plan === "PRO";
+
+            if (!isModelAvailable(input.model, isPro)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "This model requires a Pro subscription",
+                });
+            }
+
+            const updatedProject = await prisma.project.update({
+                where: { id: input.id },
+                data: { model: input.model },
+            });
+
+            return updatedProject;
         }),
 });

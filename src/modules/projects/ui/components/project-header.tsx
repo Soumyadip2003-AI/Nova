@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Logo } from "@/components/logo";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronDownIcon, ChevronLeftIcon, SunIcon, MoonIcon, MonitorIcon } from "lucide-react";
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronDownIcon, ChevronLeftIcon, SunIcon, MoonIcon, MonitorIcon, SparklesIcon } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ModelSelector } from "@/components/model-selector";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -28,10 +29,21 @@ interface Props {
 
 export const ProjectHeader = ({ projectId }: Props) => {
     const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const { data: project } = useSuspenseQuery(
         trpc.projects.getOne.queryOptions({ id: projectId })
     );
     const { setTheme, theme } = useTheme();
+
+    const updateModel = useMutation(
+        trpc.projects.updateModel.mutationOptions({
+            onSuccess: () => {
+                queryClient.invalidateQueries(
+                    trpc.projects.getOne.queryOptions({ id: projectId })
+                );
+            },
+        })
+    );
 
     return (
         <header className="p-3 flex justify-between items-center border-b bg-background/80 backdrop-blur-sm">
@@ -112,6 +124,27 @@ export const ProjectHeader = ({ projectId }: Props) => {
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
+
+                    <DropdownMenuSeparator />
+
+                    {/* Model Selector */}
+                    <div className="px-2 py-2">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="size-8 rounded-lg bg-muted flex items-center justify-center">
+                                <SparklesIcon className="size-4" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-medium text-sm">AI Model</span>
+                                <span className="text-xs text-muted-foreground">For code generation</span>
+                            </div>
+                        </div>
+                        <ModelSelector
+                            value={project.model || "gpt-4o-mini"}
+                            onChange={(model) => updateModel.mutate({ id: projectId, model })}
+                            disabled={updateModel.isPending}
+                            className="w-full"
+                        />
+                    </div>
                 </DropdownMenuContent>
             </DropdownMenu>
         </header>
