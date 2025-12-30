@@ -18,6 +18,8 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ModelSelector } from "@/components/model-selector";
+import { getDefaultModel } from "@/lib/models";
 
 const formSchema = z.object({
     value: z.string()
@@ -40,6 +42,17 @@ export const ProjectForm = () => {
 
     const hasCredits = usage ? usage.remainingPoints > 0 : true;
     const isOutOfCredits = usage ? usage.remainingPoints <= 0 : false;
+    const isPro = usage?.plan === "PRO";
+
+    // Model selection state
+    const [selectedModel, setSelectedModel] = useState<string>(() => getDefaultModel(false));
+
+    // Update default model when plan status changes
+    useEffect(() => {
+        if (usage) {
+            setSelectedModel(getDefaultModel(isPro));
+        }
+    }, [usage, isPro]);
 
     // Live countdown timer state
     const [now, setNow] = useState(new Date());
@@ -97,7 +110,7 @@ export const ProjectForm = () => {
         form.reset({ value: "" });
 
         // Optimistic mutation: start the mutation and get the promise
-        const mutationPromise = createProject.mutateAsync({ value: submittedValue });
+        const mutationPromise = createProject.mutateAsync({ value: submittedValue, model: selectedModel });
 
         // Wait for the mutation to complete and get the project ID
         mutationPromise.then((data) => {
@@ -238,12 +251,22 @@ export const ProjectForm = () => {
 
                         {/* Bottom bar */}
                         <div className="flex items-center justify-between pt-4 mt-2 border-t border-zinc-200/60 dark:border-zinc-800/60">
-                            <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
-                                <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium">
-                                    <span className="text-xs">⌘/Ctrl</span>
-                                    <span>Enter</span>
-                                </kbd>
-                                <span className="hidden sm:inline">to submit</span>
+                            {/* Model selector and keyboard hint */}
+                            <div className="flex items-center gap-3">
+                                {isSignedIn && (
+                                    <ModelSelector
+                                        value={selectedModel}
+                                        onChange={setSelectedModel}
+                                        disabled={isSubmitting}
+                                    />
+                                )}
+                                <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
+                                    <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium shadow-sm">
+                                        <span className="text-xs">⌘/Ctrl</span>
+                                        <span>Enter</span>
+                                    </kbd>
+                                    <span>to submit</span>
+                                </div>
                             </div>
 
                             <Button

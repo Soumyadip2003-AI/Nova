@@ -31,11 +31,15 @@ export const ThinkingStepSchema = z.object({
     content: z.string(),
     completed: z.boolean(),
     startTime: z.number().optional(), // Timestamp when step started
-    endTime: z.number().optional() // Timestamp when step completed
+    endTime: z.number().optional(), // Timestamp when step completed
+    isReasoning: z.boolean().optional(), // True if this is actual model reasoning (o1)
+    reasoningTokens: z.number().optional() // Number of tokens used for reasoning
 });
 
 export const ThinkingDataSchema = z.object({
-    steps: z.array(ThinkingStepSchema)
+    steps: z.array(ThinkingStepSchema),
+    modelUsed: z.string().optional(), // Track which model is being used
+    isReasoningModel: z.boolean().optional() // True if using o1/o1-mini
 });
 
 // TypeScript types derived from Zod schemas
@@ -220,6 +224,81 @@ export async function updateCurrentThinkingStepContent(
     if (currentStepIndex !== -1) {
         thinking.steps[currentStepIndex].content = content;
     }
+
+    return await prisma.message.update({
+        where: { id: messageId },
+        data: { thinking: toJsonValue(thinking) }
+    });
+}
+
+/**
+ * Adds reasoning content from o1 models to a thinking step
+ * This shows the actual thinking process from reasoning models
+ * @param messageId - The thinking message ID
+ * @param title - Title for the reasoning step
+ * @param reasoning - The actual reasoning content from the model
+ * @param reasoningTokens - Number of tokens used for reasoning
+ */
+export async function addReasoningStep(
+    messageId: string,
+    title: string,
+    reasoning: string,
+    reasoningTokens?: number
+) {
+    const message = await prisma.message.findUnique({
+        where: { id: messageId },
+    });
+
+    if (!message) {
+        console.warn(`Thinking message ${messageId} not found, likely already deleted`);
+        return null;
+    }
+
+    if (message.type !== "THINKING") {
+        console.warn(`Message ${messageId} is not a thinking message`);
+        return message;
+    }
+
+    const thinking = parseThinkingData(message.thinking);
+
+    thinking.steps.push({
+        title,
+        content: reasoning,
+        completed: true,
+        startTime: Date.now(),
+        endTime: Date.now(),
+        isReasoning: true,
+        reasoningTokens
+    });
+
+    return await prisma.message.update({
+        where: { id: messageId },
+        data: { thinking: toJsonValue(thinking) }
+    });
+}
+
+/**
+ * Updates the thinking message with model metadata
+ * @param messageId - The thinking message ID
+ * @param modelUsed - The model being used
+ * @param isReasoningModel - Whether it's a reasoning model (o1/o1-mini)
+ */
+export async function setThinkingModelMetadata(
+    messageId: string,
+    modelUsed: string,
+    isReasoningModel: boolean
+) {
+    const message = await prisma.message.findUnique({
+        where: { id: messageId },
+    });
+
+    if (!message || message.type !== "THINKING") {
+        return null;
+    }
+
+    const thinking = parseThinkingData(message.thinking);
+    thinking.modelUsed = modelUsed;
+    thinking.isReasoningModel = isReasoningModel;
 
     return await prisma.message.update({
         where: { id: messageId },

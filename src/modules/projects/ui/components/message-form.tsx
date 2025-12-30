@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import { ArrowUpIcon, Loader2Icon, Square, SparklesIcon } from "lucide-react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { Hint } from "@/components/hint";
 import { Usage } from "./usage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "next/navigation";
+import { ModelSelector } from "@/components/model-selector";
 
 interface Props {
     projectId: string;
@@ -37,6 +38,11 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
     const [isFocused, setIsFocused] = useState(false);
     const isMobile = useIsMobile();
 
+    // Fetch project data for model selection
+    const { data: project } = useSuspenseQuery(
+        trpc.projects.getOne.queryOptions({ id: projectId })
+    );
+
     // Always poll usage status every 5 seconds to catch credit updates
     // Credits are consumed asynchronously in the background, so we need continuous polling
     const { data: usage } = useQuery({
@@ -44,6 +50,17 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
         refetchInterval: 5000, // Poll every 5s to catch async credit consumption
     });
     const showUsage = !!usage;
+
+    // Model update mutation
+    const updateModel = useMutation(
+        trpc.projects.updateModel.mutationOptions({
+            onSuccess: () => {
+                queryClient.invalidateQueries(
+                    trpc.projects.getOne.queryOptions({ id: projectId })
+                );
+            },
+        })
+    );
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -193,13 +210,20 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
 
                     {/* Footer with actions */}
                     <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200/60 dark:border-zinc-800/60">
-                        {/* Keyboard hint */}
-                        <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
-                            <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium shadow-sm">
-                                <span className="text-xs">⌘/Ctrl</span>
-                                <span>Enter</span>
-                            </kbd>
-                            <span>to {isThinking ? "cancel" : "send"}</span>
+                        {/* Model selector and keyboard hint */}
+                        <div className="flex items-center gap-3">
+                            <ModelSelector
+                                value={project.model || "gpt-4o-mini"}
+                                onChange={(model) => updateModel.mutate({ id: projectId, model })}
+                                disabled={updateModel.isPending || isThinking}
+                            />
+                            <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
+                                <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium shadow-sm">
+                                    <span className="text-xs">⌘/Ctrl</span>
+                                    <span>Enter</span>
+                                </kbd>
+                                <span>to {isThinking ? "cancel" : "send"}</span>
+                            </div>
                         </div>
 
                         {/* Action buttons */}

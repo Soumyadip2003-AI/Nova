@@ -7,10 +7,14 @@ export interface ThinkingStep {
     title: string;
     content: string;
     completed: boolean;
+    isReasoning?: boolean; // True if this is actual model reasoning (o1)
+    reasoningTokens?: number; // Number of tokens used for reasoning
 }
 
 export interface ThinkingData {
     steps: ThinkingStep[];
+    modelUsed?: string; // Track which model is being used
+    isReasoningModel?: boolean; // True if using o1/o1-mini
 }
 
 interface ShimmerMessagesProps {
@@ -33,7 +37,9 @@ const STEP_WEIGHTS: Record<string, number> = {
     "Setting up environment": 15,
     "Planning implementation": 20,
     "Writing code": 50,  // Longest step - agent iterations
-    "Preparing preview": 15
+    "Preparing preview": 15,
+    "Reasoning": 60,  // o1 models - reasoning takes time
+    "Reasoning Complete": 5  // Summary step
 };
 
 // Progress bar for active step (like Claude)
@@ -179,10 +185,18 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
                             <span className="text-base font-semibold text-foreground">
-                                {allCompleted ? 'Thought complete' : 'Thinking'}
+                                {allCompleted
+                                    ? (thinking.isReasoningModel ? 'Reasoning complete' : 'Thought complete')
+                                    : (thinking.isReasoningModel ? 'Deep Reasoning' : 'Thinking')
+                                }
                             </span>
                             {!allCompleted && (
                                 <TypingIndicator />
+                            )}
+                            {thinking.isReasoningModel && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-purple-600 dark:text-purple-400 font-medium">
+                                    o1
+                                </span>
                             )}
                         </div>
                         {!allCompleted && (
@@ -191,13 +205,20 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                                 <span className="text-primary">•</span>
                                 <span className="font-medium text-primary">{weightedProgress}%</span>
                                 <span className="text-primary">•</span>
-                                <span className="animate-pulse">Processing...</span>
+                                <span className="animate-pulse">
+                                    {thinking.isReasoningModel ? 'Reasoning through problem...' : 'Processing...'}
+                                </span>
                             </div>
                         )}
                         {allCompleted && (
                             <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                                 <Sparkles className="w-3 h-3" />
-                                <span>All steps completed</span>
+                                <span>
+                                    {thinking.isReasoningModel
+                                        ? 'Deep reasoning completed'
+                                        : 'All steps completed'
+                                    }
+                                </span>
                             </div>
                         )}
                     </div>
@@ -252,7 +273,9 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                                 key={index}
                                 className={cn(
                                     "rounded-xl border transition-all duration-300 animate-in slide-in-from-left fade-in overflow-hidden",
-                                    isCurrent
+                                    step.isReasoning
+                                        ? 'bg-gradient-to-r from-purple-500/5 to-blue-500/5 border-purple-500/30 shadow-sm'
+                                        : isCurrent
                                         ? 'bg-gradient-to-r from-primary/5 to-primary/10 border-primary/30 shadow-sm'
                                         : step.completed
                                         ? 'bg-background/50 border-border hover:border-primary/20 hover:bg-background/80'
@@ -284,11 +307,17 @@ const ShimmerMessages = ({ thinking }: ShimmerMessagesProps) => {
                                             <div className="flex items-center gap-2 flex-1 min-w-0">
                                                 <span className={cn(
                                                     "text-sm font-medium transition-colors",
+                                                    step.isReasoning ? 'text-purple-600 dark:text-purple-400' :
                                                     isCurrent ? 'text-foreground' : 'text-muted-foreground'
                                                 )}>
                                                     {step.title}
                                                 </span>
-                                                {isCurrent && (
+                                                {step.isReasoning && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-purple-600 dark:text-purple-400 font-medium">
+                                                        reasoning
+                                                    </span>
+                                                )}
+                                                {isCurrent && !step.isReasoning && (
                                                     <Zap className="w-3.5 h-3.5 text-primary animate-pulse shrink-0" />
                                                 )}
                                             </div>
