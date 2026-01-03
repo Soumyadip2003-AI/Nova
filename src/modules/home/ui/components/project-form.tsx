@@ -294,7 +294,7 @@ export const ProjectForm = () => {
                 </div>
 
                 {/* Template buttons */}
-                <div className="hidden md:flex flex-wrap justify-center gap-2">
+                <div className="flex flex-wrap justify-center gap-2">
                     {PROJECT_TEMPLATES.map((template, index) => (
                         <Button
                             key={template.title}
