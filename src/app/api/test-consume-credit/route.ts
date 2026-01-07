@@ -4,6 +4,10 @@ import { consumeCreditsForUser, getUsageStatus } from "@/lib/usage";
 
 export async function POST() {
     try {
+        if (process.env.NODE_ENV === "production") {
+            return NextResponse.json({ error: "Not found" }, { status: 404 });
+        }
+
         const { userId } = await auth();
 
         if (!userId) {

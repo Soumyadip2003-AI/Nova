@@ -5,13 +5,28 @@ import { upgradeUserToPro } from "@/lib/usage";
 // POST /api/upgrade-to-pro - Upgrade current user to Pro
 // This endpoint can be called after successful Clerk Commerce payment
 export async function POST() {
-    const { userId } = await auth();
+    const { userId, has } = await auth();
 
     if (!userId) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     try {
+        const hasPro =
+            has?.({ plan: "pro" }) ||
+            has?.({ plan: "Pro" }) ||
+            has?.({ plan: "PRO" }) ||
+            has?.({ feature: "pro" }) ||
+            has?.({ feature: "Pro" }) ||
+            has?.({ feature: "PRO" });
+
+        if (!hasPro) {
+            return NextResponse.json(
+                { error: "Pro subscription not active" },
+                { status: 403 }
+            );
+        }
+
         const usage = await upgradeUserToPro(userId);
 
         return NextResponse.json({

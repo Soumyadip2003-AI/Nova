@@ -10,6 +10,10 @@ import { cleanupThinkingMessageWithError, ThinkingErrorType } from "@/lib/thinki
  */
 export async function GET() {
   try {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     const fifteenMinutesAgo = new Date(Date.now() - 900000); // 15 minutes (consistent with cron job)
 
     // Find orphaned thinking messages

@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { generateChatResponse, saveChatMessage } from "@/lib/chat-agent";
 import { prisma } from "@/lib/db";
+import {
+  consumeCreditsForUser,
+  getUsageStatus,
+  InsufficientCreditsError,
+  refundCreditsForUser,
+} from "@/lib/usage";
+import { RateLimiterMemory } from "rate-limiter-flexible";
+
+const chatRateLimiter = new RateLimiterMemory({
+  points: 20,
+  duration: 60,
+});
 
 /**
  * Chat endpoint for answering questions about projects
@@ -10,6 +23,16 @@ import { prisma } from "@/lib/db";
  * that don't require code generation or sandbox execution
  */
 export async function POST(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json(
+      { success: false, error: "Not authenticated" },
+      { status: 401 }
+    );
+  }
+
+  let creditsConsumed = false;
+
   try {
     const body = await request.json();
     const { projectId, message } = body;
@@ -21,9 +44,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify project exists
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+    try {
+      await chatRateLimiter.consume(`chat:${userId}`);
+    } catch (error) {
+      const retryAfter =
+        typeof error === "object" && error && "msBeforeNext" in error
+          ? Math.ceil(Number(error.msBeforeNext) / 1000)
+          : 60;
+
+      return NextResponse.json(
+        { success: false, error: "Too many requests" },
+        {
+          status: 429,
+          headers: { "Retry-After": retryAfter.toString() },
+        }
+      );
+    }
+
+    // Verify project exists and belongs to the user
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId },
     });
 
     if (!project) {
@@ -32,6 +72,18 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Sync plan status and check credits before consuming
+    const usageStatus = await getUsageStatus();
+    if (usageStatus.remainingPoints < 1) {
+      return NextResponse.json(
+        { success: false, error: "You have run out of credits" },
+        { status: 429 }
+      );
+    }
+
+    await consumeCreditsForUser(userId);
+    creditsConsumed = true;
 
     // Save user message
     await saveChatMessage(projectId, message, "USER");
@@ -47,6 +99,21 @@ export async function POST(request: NextRequest) {
       response,
     });
   } catch (error) {
+    if (creditsConsumed) {
+      try {
+        await refundCreditsForUser(userId);
+      } catch (refundError) {
+        console.error("Chat refund failed:", refundError);
+      }
+    }
+
+    if (error instanceof InsufficientCreditsError) {
+      return NextResponse.json(
+        { success: false, error: "You have run out of credits" },
+        { status: 429 }
+      );
+    }
+
     console.error("Chat failed:", error);
     return NextResponse.json(
       {

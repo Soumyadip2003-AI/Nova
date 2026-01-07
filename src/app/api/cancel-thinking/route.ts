@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { cleanupThinkingMessageWithError, ThinkingErrorType } from "@/lib/thinking-helpers";
 import { inngest } from "@/inngest/client";
@@ -11,6 +12,14 @@ import { inngest } from "@/inngest/client";
  */
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { projectId } = body;
 
@@ -18,6 +27,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "projectId is required" },
         { status: 400 }
+      );
+    }
+
+    // Verify project exists and belongs to the user
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId },
+      select: { id: true },
+    });
+
+    if (!project) {
+      return NextResponse.json(
+        { success: false, error: "Project not found" },
+        { status: 404 }
       );
     }
 

@@ -289,25 +289,87 @@ export async function getSubscriptionStatus() {
 
 // Manual upgrade function - call this to upgrade a user to Pro
 export async function upgradeUserToPro(userId: string) {
+    const usage = await ensureUserPlan(userId, UserPlan.PRO);
+    console.log(`Manually upgraded user ${userId} to Pro with ${PRO_POINTS} credits`);
+    return usage;
+}
+
+export async function downgradeUserToFree(userId: string) {
+    const usage = await ensureUserPlan(userId, UserPlan.FREE);
+    console.log(`Downgraded user ${userId} to Free with ${FREE_POINTS} credits`);
+    return usage;
+}
+
+export async function setUserPlan(userId: string, plan: UserPlan) {
+    if (!userId) {
+        throw new Error("User ID required");
+    }
+
     const now = new Date();
     const resetDate = new Date(now.getTime() + DURATION);
+    const planCredits = getCreditsForPlan(plan);
 
-    const usage = await prisma.usage.upsert({
+    return prisma.usage.upsert({
         where: { key: userId },
         update: {
-            plan: UserPlan.PRO,
-            points: PRO_POINTS,
+            plan,
+            points: planCredits,
             expire: resetDate,
         },
         create: {
             key: userId,
-            plan: UserPlan.PRO,
-            points: PRO_POINTS,
+            plan,
+            points: planCredits,
             expire: resetDate,
         },
     });
+}
 
-    console.log(`Manually upgraded user ${userId} to Pro with ${PRO_POINTS} credits`);
+export async function ensureUserPlan(userId: string, plan: UserPlan) {
+    if (!userId) {
+        throw new Error("User ID required");
+    }
+
+    const now = new Date();
+    const resetDate = new Date(now.getTime() + DURATION);
+    const planCredits = getCreditsForPlan(plan);
+
+    const usage = await prisma.usage.findUnique({
+        where: { key: userId },
+    });
+
+    if (!usage) {
+        return prisma.usage.create({
+            data: {
+                key: userId,
+                plan,
+                points: planCredits,
+                expire: resetDate,
+            },
+        });
+    }
+
+    if (usage.plan !== plan) {
+        return prisma.usage.update({
+            where: { key: userId },
+            data: {
+                plan,
+                points: planCredits,
+                expire: resetDate,
+            },
+        });
+    }
+
+    if (usage.expire < now) {
+        return prisma.usage.update({
+            where: { key: userId },
+            data: {
+                points: planCredits,
+                expire: resetDate,
+            },
+        });
+    }
+
     return usage;
 }
 
