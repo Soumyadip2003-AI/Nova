@@ -295,7 +295,7 @@ export async function upgradeUserToPro(userId: string) {
 }
 
 export async function downgradeUserToFree(userId: string) {
-    const usage = await setUserPlan(userId, UserPlan.FREE);
+    const usage = await ensureUserPlan(userId, UserPlan.FREE);
     console.log(`Downgraded user ${userId} to Free with ${FREE_POINTS} credits`);
     return usage;
 }

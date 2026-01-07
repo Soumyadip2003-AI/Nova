@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { downgradeUserToFree, upgradeUserToPro } from "@/lib/usage";
 
@@ -39,7 +39,7 @@ const isProPlan = (plan?: { slug?: string; name?: string; id?: string } | null) 
 const getUserId = (data: { payer?: { user_id?: string } }) =>
   data?.payer?.user_id ?? null;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let event;
   try {
     event = await verifyWebhook(request);
