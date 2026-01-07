@@ -4,6 +4,10 @@ import { prisma } from "@/lib/db";
 
 export async function GET() {
     try {
+        if (process.env.NODE_ENV === "production") {
+            return NextResponse.json({ error: "Not found" }, { status: 404 });
+        }
+
         const { userId } = await auth();
 
         if (!userId) {

@@ -10,8 +10,13 @@ export default function PaymentSuccessPage() {
 
     useEffect(() => {
         // Call upgrade endpoint after successful payment
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        let attempts = 0;
+        const maxAttempts = 5;
+
         const upgradeAccount = async () => {
             try {
+                attempts += 1;
                 const response = await fetch("/api/upgrade-to-pro", {
                     method: "POST",
                 });
@@ -19,8 +24,12 @@ export default function PaymentSuccessPage() {
                 if (response.ok) {
                     setStatus("success");
                     // Redirect to home after 2 seconds
-                    setTimeout(() => {
+                    timeoutId = setTimeout(() => {
                         router.push("/");
+                    }, 2000);
+                } else if (response.status === 403 && attempts < maxAttempts) {
+                    timeoutId = setTimeout(() => {
+                        upgradeAccount();
                     }, 2000);
                 } else {
                     setStatus("error");
@@ -32,6 +41,12 @@ export default function PaymentSuccessPage() {
         };
 
         upgradeAccount();
+
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
     }, [router]);
 
     return (
