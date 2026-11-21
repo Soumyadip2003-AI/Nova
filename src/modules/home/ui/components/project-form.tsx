@@ -37,7 +37,9 @@ export const ProjectForm = () => {
     // Fetch usage status
     const { data: usage, refetch: refetchUsage } = useQuery({
         ...trpc.usage.status.queryOptions(),
-        enabled: isSignedIn,
+        // isSignedIn is undefined while Clerk loads, and TanStack treats
+        // enabled: undefined as true, so only an explicit true may fetch.
+        enabled: isSignedIn === true,
     });
 
     const hasCredits = usage ? usage.remainingPoints > 0 : true;
