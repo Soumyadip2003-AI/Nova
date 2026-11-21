@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { inngest } from "./client";
 import {  openai, createAgent, createTool, createNetwork, createState, type Tool } from "@inngest/agent-kit";
 import { Sandbox} from "@e2b/code-interpreter"
+import { verifySandbox, repairPrompt } from "./verify";
 import { getSandbox, lastAssistantTextMessageContent } from "./utils";
 import { PROMPT, RESPONSE_PROMPT, FRAGMENT_TITLE_PROMPT } from '@/prompt';
 import { prisma } from '@/lib/db';
@@ -393,7 +394,32 @@ export const codeAgentFunction = inngest.createFunction(
 
       // Run the agent network - this is the long-running operation
       console.log("Starting agent network run with input:", event.data.value.substring(0, 100));
-      const result = await network.run(event.data.value);
+      let result = await network.run(event.data.value);
+
+      // Self-healing: check the code like a developer would (TypeScript, and
+      // the running app's home page) and hand any problems back to the agent,
+      // up to MAX_REPAIRS times, before the user ever sees the result.
+      const MAX_REPAIRS = 2;
+      for (let attempt = 1; attempt <= MAX_REPAIRS; attempt++) {
+        const changed = Object.keys(result.state.data.files || {});
+        if (!changed.length) break;
+        const check = await step.run(`verify-${attempt}`, () => verifySandbox(sandboxId, changed));
+        if (check.ok) {
+          await step.run(`verified-${attempt}`, () =>
+            addThinkingStep(thinkingMessage.id, "Checked", attempt === 1
+              ? "Type check passed and the app loads without errors."
+              : `Fixed and re-checked: the app now loads without errors (repair ${attempt - 1}).`));
+          await step.run(`verified-done-${attempt}`, () => completeCurrentThinkingStep(thinkingMessage.id));
+          break;
+        }
+        console.log(`Self-healing: ${check.problems.length} problem(s) on check ${attempt}`, check.problems);
+        await step.run(`repairing-${attempt}`, () =>
+          addThinkingStep(thinkingMessage.id, "Fixing problems",
+            `Found ${check.problems.length} problem${check.problems.length > 1 ? "s" : ""} in the generated code. Fixing ${check.problems.length > 1 ? "them" : "it"} (attempt ${attempt} of ${MAX_REPAIRS}).`));
+        result.state.data.summary = ""; // lets the router hand control back to the agent
+        result = await network.run(repairPrompt(check.problems), { state: result.state });
+        await step.run(`repaired-${attempt}`, () => completeCurrentThinkingStep(thinkingMessage.id));
+      }
 
       // Complete the thinking/reasoning step and add reasoning details for o1 models
       await step.run("complete-generation", async () => {
