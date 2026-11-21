@@ -7,6 +7,10 @@ const isPublicRoute = createRouteMatcher([
   "/pricing(.*)",
   "/api/inngest(.*)",
   "/api/webhooks(.*)",
+  // Every tRPC procedure checks auth itself (protectedProcedure) and answers a
+  // signed-out call with a JSON 401. Protecting it here too turned those calls
+  // into an HTML 404 page, which the client cannot read.
+  "/api/trpc(.*)",
 ])
 
 export default clerkMiddleware(async (auth, req) => {

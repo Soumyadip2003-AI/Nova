@@ -6,9 +6,10 @@
 import OpenAI from "openai";
 import { prisma } from "@/lib/db";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Created on first use, not at import: the constructor throws without
+// OPENAI_API_KEY, and importing this module at build time must not need it.
+let client: OpenAI | null = null;
+const openai = () => (client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
 const CHAT_SYSTEM_PROMPT = `You are a friendly and knowledgeable AI assistant for Nova, a code generation platform. Your role is to:
 
@@ -171,7 +172,7 @@ export async function generateChatResponse(
 
   // Generate response using provided model or default to gpt-4o-mini
   const chatModel = model || "gpt-4o-mini";
-  const response = await openai.chat.completions.create({
+  const response = await openai().chat.completions.create({
     model: chatModel,
     messages,
     temperature: 0.7,

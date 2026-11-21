@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 import { CrownIcon, SparklesIcon, BrainIcon, ZapIcon } from "lucide-react";
 import {
@@ -31,7 +32,12 @@ const MODEL_ICONS: Record<string, React.ReactNode> = {
 
 export const ModelSelector = ({ value, onChange, disabled, className }: Props) => {
   const trpc = useTRPC();
-  const { data: usage } = useQuery(trpc.usage.status.queryOptions());
+  const { isSignedIn } = useAuth();
+  // Usage is per user: never ask for it before Clerk confirms a signed-in user.
+  const { data: usage } = useQuery({
+    ...trpc.usage.status.queryOptions(),
+    enabled: isSignedIn === true,
+  });
 
   const isPro = usage?.plan === "PRO";
   const availableModels = getAvailableModels(isPro);
