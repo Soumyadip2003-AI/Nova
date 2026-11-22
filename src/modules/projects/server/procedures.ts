@@ -1,3 +1,4 @@
+import { EFFORTS } from "@/lib/models";
 import { inngest } from "@/inngest/client";
 import { prisma } from "@/lib/db";
 import { protectedProcedure, createTRPCRouter } from "@/trpc/init";
@@ -54,6 +55,7 @@ export const projectsRouter = createTRPCRouter({
                 .min(1, { message: "Value is required" })
                 .max(10000, { message: "Value is too long" }),
                 model: z.string().optional(),
+                effort: z.enum(EFFORTS).optional(),
             }),
         )
         .mutation(async ({ input ,ctx}) => {
@@ -104,6 +106,7 @@ export const projectsRouter = createTRPCRouter({
                         projectId: createdProject.id,
                         userId: ctx.auth.userId,
                         model: selectedModel,
+                        effort: input.effort,
                     }
                 });
             } catch (error) {

@@ -15,7 +15,7 @@ import { Form, FormField } from "@/components/ui/form";
 import { Usage } from "./usage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "next/navigation";
-import { ModelSelector } from "@/components/model-selector";
+import { EffortSelector, ModelSelector, useEffort } from "@/components/model-selector";
 
 interface Props {
     projectId: string;
@@ -35,6 +35,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
     const queryClient = useQueryClient();
     const [isCancelling, setIsCancelling] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const [effort, setEffort] = useEffort();
     const isMobile = useIsMobile();
 
     // Fetch project data for model selection
@@ -94,6 +95,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
         createMessage.mutate({
             value: values.value,
             projectId,
+            effort,
         });
     };
 
@@ -201,6 +203,12 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                             value={project.model || "gpt-4o-mini"}
                             onChange={(model) => updateModel.mutate({ id: projectId, model })}
                             disabled={updateModel.isPending || isThinking}
+                        />
+                        <EffortSelector
+                            model={project.model || "gpt-4o-mini"}
+                            value={effort}
+                            onChange={setEffort}
+                            disabled={isThinking}
                         />
                         <p className={cn("hidden items-center gap-1.5 font-mono text-xs text-muted-foreground", !isMobile && "lg:flex")}>
                             <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl or Cmd + Enter</kbd>

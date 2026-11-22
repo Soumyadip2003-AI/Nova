@@ -219,7 +219,7 @@ export const codeAgentFunction = inngest.createFunction(
         baseUrl: `${SITE.url}/api/ai/openai/`,
         // Reasoning-era models (o1, GPT-5 and later) reject a custom temperature.
         // Per-model parameters: GPT-5/6 need reasoning_effort "none" to use tools.
-        defaultParameters: agentParameters(selectedModel),
+        defaultParameters: agentParameters(selectedModel, event.data.effort),
       }),
       tools:[
         createTool({
@@ -359,9 +359,11 @@ export const codeAgentFunction = inngest.createFunction(
     try {
       // Add thinking step before agent starts - different messaging for reasoning models
       await step.run("start-generation", async () => {
-        const { getModelInfo } = await import("@/lib/models");
+        const { getModelInfo, supportsEffort, EFFORT_LABELS, DEFAULT_EFFORT } = await import("@/lib/models");
         const modelInfo = getModelInfo(selectedModel);
-        const modelName = modelInfo?.name || selectedModel;
+        const effortLabel = EFFORT_LABELS[event.data.effort as keyof typeof EFFORT_LABELS] ?? EFFORT_LABELS[DEFAULT_EFFORT];
+        const modelName = (modelInfo?.name || selectedModel) +
+          (supportsEffort(selectedModel) ? `, ${effortLabel.toLowerCase()} effort` : "");
 
         // Starts empty: the real actions (files written, commands run, the
         // model's own words) are appended as they happen.
