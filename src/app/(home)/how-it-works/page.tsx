@@ -67,7 +67,7 @@ const Page = () => (
 
         <h2>Previews and your code</h2>
         <p>
-            Previews run in a temporary sandbox, so a preview link stops working after a while: a few minutes on Free and up to 20 minutes on Pro. Your code and every version stay saved in your account. Sending your next change starts a fresh, live preview.
+            Previews run in a temporary sandbox that pauses about 15 minutes after it was last used (up to 20 minutes on Pro). Your code and every version stay saved in your account, and a stopped preview can be started again with one click, without using a credit.
         </p>
         <p>
             Open the <strong>Code</strong> tab to read or copy every file. You can take the code anywhere and run or host it yourself.
