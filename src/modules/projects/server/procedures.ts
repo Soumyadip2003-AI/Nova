@@ -107,8 +107,14 @@ export const projectsRouter = createTRPCRouter({
                     }
                 });
             } catch (error) {
+                // Without the event no build ever starts: remove the empty
+                // project and tell the user, instead of leaving it stuck.
                 console.error("Failed to send Inngest event:", error);
-                // Continue even if Inngest fails - project is already created
+                await prisma.project.delete({ where: { id: createdProject.id } });
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Nova could not start this build. Please try again.",
+                });
             }
 
             return createdProject;

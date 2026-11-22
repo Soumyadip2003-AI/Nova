@@ -58,6 +58,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                     trpc.projects.getOne.queryOptions({ id: projectId })
                 );
             },
+            onError: (error) => toast.error(error.message),
         })
     );
 

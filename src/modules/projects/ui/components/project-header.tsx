@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Logo } from "@/components/logo";
@@ -42,6 +44,7 @@ export const ProjectHeader = ({ projectId }: Props) => {
                     trpc.projects.getOne.queryOptions({ id: projectId })
                 );
             },
+            onError: (error) => toast.error(error.message),
         })
     );
 

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { inngest } from "./client";
+import { NonRetriableError } from "inngest";
 import {  openai, createAgent, createTool, createNetwork, createState, type Tool } from "@inngest/agent-kit";
 import { Sandbox} from "@e2b/code-interpreter"
 import { verifySandbox, repairPrompt } from "./verify";
@@ -30,6 +31,9 @@ interface AgentState{
 
 
 
+// Marker for the consume step's failure, so onFailure knows nothing was charged.
+const CONSUME_FAILED = "Failed to consume credits";
+
 export const codeAgentFunction = inngest.createFunction(
   {
     id: "code-agent",
@@ -56,8 +60,10 @@ export const codeAgentFunction = inngest.createFunction(
           return;
         }
 
-        // Refund credits if they were consumed before the failure
-        if (userId) {
+        // Refund only if the credit was actually taken: a failure in the
+        // consume step itself means the user was never charged.
+        const creditWasTaken = !error.message?.includes(CONSUME_FAILED);
+        if (userId && creditWasTaken) {
           try {
             const { refundCreditsForUser } = await import("@/lib/usage");
             await refundCreditsForUser(userId);
@@ -133,7 +139,8 @@ export const codeAgentFunction = inngest.createFunction(
         console.log("✓ Credits consumed upfront before generation");
       } catch (error) {
         console.error("✗ Failed to consume credits before generation:", error);
-        throw new Error("Failed to consume credits. Please try again.");
+        // Not retryable: running out of credits will not fix itself.
+        throw new NonRetriableError(`${CONSUME_FAILED}. Please try again.`);
       }
     });
 
@@ -146,8 +153,9 @@ export const codeAgentFunction = inngest.createFunction(
       return project?.name || "Fragment";
     });
 
+    // Failures here are retried by Inngest; cleanup and the refund happen once,
+    // in onFailure, instead of on every attempt.
     const sandboxId = await step.run("get-sandbox-id",async ()=>{
-      try {
         await addThinkingStep(
           thinkingMessage.id,
           "Setting up environment",
@@ -192,16 +200,6 @@ export const codeAgentFunction = inngest.createFunction(
         // Complete immediately after sandbox is created
         await completeCurrentThinkingStep(thinkingMessage.id);
         return sandbox.sandboxId;
-      } catch (error) {
-        // Cleanup with specific sandbox error type
-        await cleanupThinkingMessageWithError(
-          thinkingMessage.id,
-          event.data.projectId,
-          ThinkingErrorType.SANDBOX_SETUP,
-          error instanceof Error ? error.message : undefined
-        );
-        throw error; // Re-throw to stop execution
-      }
     });
 
 
@@ -589,7 +587,9 @@ export const codeAgentFunction = inngest.createFunction(
           },
         });
       });
-      throw error; // Re-throw to ensure Inngest marks it as failed and triggers onFailure
+      // Refund and the error message are done above. Re-throwing would make
+      // onFailure refund and report a second time.
+      return { error: error instanceof Error ? error.message : "Unknown error" };
     }
   },
 );

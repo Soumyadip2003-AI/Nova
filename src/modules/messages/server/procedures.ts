@@ -6,6 +6,7 @@ import { isDefinitelyQuestion } from "@/lib/question-detector";
 import { generateChatResponse } from "@/lib/chat-agent";
 import { createThinkingMessage, deleteThinkingMessage } from "@/lib/thinking-helpers";
 import { TRPCError } from "@trpc/server";
+import { after } from "next/server";
 
 export const messagesRouter = createTRPCRouter({
     getMany:protectedProcedure
@@ -66,6 +67,13 @@ export const messagesRouter = createTRPCRouter({
             const savedModel = existingproject.model || "gpt-4o-mini";
             const projectModel = isModelAvailable(savedModel, isPro) ? savedModel : getDefaultModel(isPro);
 
+            // Sending a message is activity on the project: keep "Updated ..."
+            // and the project list order current.
+            await prisma.project.update({
+                where: { id: existingproject.id },
+                data: { updatedAt: new Date() },
+            });
+
             // Check if this is a question or a code generation request
             const isQuestion = isDefinitelyQuestion(input.value);
 
@@ -99,9 +107,11 @@ export const messagesRouter = createTRPCRouter({
                 // Store userId for background processing
                 const userId = ctx.auth.userId;
 
-                // Process response asynchronously (don't await - return immediately)
-                setImmediate(() => {
-                    (async () => {
+                // Answer after the response is sent. after() keeps the serverless
+                // function alive until this finishes; setImmediate did not, so on
+                // Vercel the answer could be lost with the credit already spent.
+                after(() => {
+                    return (async () => {
                         try {
                             // Generate chat response with project's model
                             const chatResponse = await generateChatResponse(input.projectId, input.value, projectModel);
@@ -184,8 +194,14 @@ export const messagesRouter = createTRPCRouter({
                     }
                 });
             } catch (error) {
+                // Without the event no build ever starts: remove the message and
+                // tell the user, instead of leaving it waiting forever.
                 console.error("Failed to send Inngest event:", error);
-                // Continue even if Inngest fails - message is already created
+                await prisma.message.delete({ where: { id: createdMessage.id } });
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Nova could not start this build. Please try again.",
+                });
             }
 
             return createdMessage;
