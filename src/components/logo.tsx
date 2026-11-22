@@ -1,101 +1,71 @@
 "use client";
 
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
     size?: number;
     showText?: boolean;
     className?: string;
+    /** Kept for existing callers; the proofread mark has no hover glow. */
     hover?: boolean;
     withContainer?: boolean;
     containerClassName?: string;
+    /** Gently pulses the mark while Nova is working. */
     pulse?: boolean;
 }
+
+/** The Nova mark: an ink tile with a highlighter "N". */
+const Mark = ({ size, pulse }: { size: number; pulse?: boolean }) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 28 28"
+        aria-hidden="true"
+        className={cn("shrink-0", pulse && "animate-pulse")}
+    >
+        <rect x="2" y="2" width="24" height="24" rx="7" fill="#13213a" />
+        <path
+            d="M9 19V9l10 10V9"
+            fill="none"
+            stroke="#f5e663"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
 
 export const Logo = ({
     size = 24,
     showText = false,
     className,
-    hover = true,
     withContainer = false,
     containerClassName,
     pulse = false,
 }: LogoProps) => {
-    const logoImage = (
-        <div className="relative">
-            <Image
-                src="/logo.svg"
-                alt="Nova"
-                width={size}
-                height={size}
-                className={cn(
-                    "relative z-10 shrink-0 transition-transform duration-300",
-                    hover && "group-hover:scale-110"
-                )}
-            />
-            <div
-                className={cn(
-                    "absolute inset-0 bg-orange-500/0 blur-xl transition-all duration-300 rounded-full scale-150",
-                    hover && "group-hover:bg-orange-500/60"
-                )}
-            />
-            {pulse && (
-                <div
-                    className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping"
-                    style={{ animationDuration: '2s' }}
-                />
-            )}
-        </div>
+    const mark = withContainer ? (
+        <span className={cn("flex items-center justify-center", containerClassName)}>
+            <Mark size={size} pulse={pulse} />
+        </span>
+    ) : (
+        <Mark size={size} pulse={pulse} />
     );
 
-    if (withContainer) {
-        return (
-            <div className={cn("group flex items-center gap-2", className)}>
-                <div className="relative">
-                    <div className={cn(
-                        "absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl blur-lg opacity-0 transition-opacity duration-300",
-                        hover && "group-hover:opacity-40"
-                    )} />
-                    <div className={cn(
-                        "relative rounded-xl flex items-center justify-center transition-all duration-300",
-                        "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30",
-                        "ring-1 ring-amber-200/50 dark:ring-amber-500/20",
-                        hover && "group-hover:ring-amber-500/50 group-hover:scale-105",
-                        containerClassName
-                    )}>
-                        {logoImage}
-                    </div>
-                </div>
-                {showText && (
-                    <span
-                        className={cn(
-                            "font-semibold transition-all duration-300",
-                            size >= 24 ? "text-lg" : "text-sm",
-                            hover && "group-hover:text-orange-400 group-hover:drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]"
-                        )}
-                    >
-                        Nova
-                    </span>
-                )}
-            </div>
-        );
-    }
-
     return (
-        <div className={cn("group flex items-center gap-2", className)}>
-            {logoImage}
-            {showText && (
+        <span className={cn("flex items-center gap-2", className)}>
+            {mark}
+            {showText ? (
                 <span
                     className={cn(
-                        "font-semibold transition-all duration-300",
-                        size >= 24 ? "text-lg" : "text-sm",
-                        hover && "group-hover:text-orange-400 group-hover:drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]"
+                        "font-display font-bold tracking-tight text-foreground",
+                        size >= 24 ? "text-xl" : "text-base",
                     )}
                 >
                     Nova
                 </span>
+            ) : (
+                <span className="sr-only">Nova</span>
             )}
-        </div>
+        </span>
     );
 };
