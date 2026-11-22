@@ -70,9 +70,10 @@ export async function verifySandbox(sandboxId: string, changed: string[]): Promi
   const problems: string[] = [];
   const codeFiles = changed.filter((f) => /\.(tsx?|jsx?)$/.test(f));
   if (codeFiles.length) {
-    // The sandbox has 1 GB and next dev already uses most of it; an uncapped
-    // tsc can push the dev server out of memory. Capped, tsc fails alone.
-    const tsc = await run("NODE_OPTIONS=--max-old-space-size=320 npx tsc --noEmit --pretty false -p . 2>&1 | head -200", 90_000);
+    // The sandbox has 2 GB with ~1.2 GB free beside next dev. The cap keeps a
+    // runaway tsc from pushing the dev server out of memory; 320 MB was too
+    // little for the template's 53 components (tsc aborted, checking nothing).
+    const tsc = await run("NODE_OPTIONS=--max-old-space-size=768 npx tsc --noEmit --pretty false -p . 2>&1 | head -200", 90_000);
     problems.push(...typeErrorsFor(tsc, codeFiles).slice(0, 20));
   }
 
