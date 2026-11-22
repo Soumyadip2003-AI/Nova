@@ -66,7 +66,6 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
 
   // Group models by category
   const standardModels = availableModels.filter(m => m.category === "standard");
-  const reasoningModels = availableModels.filter(m => m.category === "reasoning");
   const flagshipModels = availableModels.filter(m => m.category === "flagship");
 
   // Get current model info for display
@@ -110,18 +109,6 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
           </SelectGroup>
         )}
 
-        {reasoningModels.length > 0 && (
-          <>
-            <SelectSeparator />
-            <SelectGroup>
-              <SelectLabel className={groupLabel}>
-                {MODEL_ICONS.reasoning}
-                Reasoning
-              </SelectLabel>
-              {reasoningModels.map(item)}
-            </SelectGroup>
-          </>
-        )}
 
         {flagshipModels.length > 0 && (
           <>
