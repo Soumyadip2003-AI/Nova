@@ -197,8 +197,10 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                     />
                 </div>
 
-                <div className="flex items-center justify-between gap-2 px-3 pb-3 pt-1.5">
-                    <div className="flex min-w-0 items-center gap-3">
+                {/* The pickers wrap onto a second line in a narrow chat panel; they
+                    cannot shrink, and on one line they ran under the Send button. */}
+                <div className="@container flex items-end justify-between gap-2 px-3 pb-3 pt-1.5">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                         <ModelSelector
                             value={project.model || "gpt-4o-mini"}
                             onChange={(model) => updateModel.mutate({ id: projectId, model })}
@@ -210,7 +212,9 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                             onChange={setEffort}
                             disabled={isThinking}
                         />
-                        <p className={cn("hidden items-center gap-1.5 font-mono text-xs text-muted-foreground", !isMobile && "lg:flex")}>
+                        {/* Shown only when this row has room for it: sized by the viewport, it
+                            squeezed into a column and ran under the Send/Stop button in the narrow chat panel. */}
+                        <p className={cn("hidden shrink-0 items-center gap-1.5 whitespace-nowrap font-mono text-xs text-muted-foreground", !isMobile && "@3xl:flex")}>
                             <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl or Cmd + Enter</kbd>
                             to {isThinking ? "stop" : "send"}
                         </p>

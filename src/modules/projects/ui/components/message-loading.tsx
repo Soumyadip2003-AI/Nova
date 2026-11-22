@@ -110,7 +110,12 @@ const ThinkingLog = ({ thinking }: { thinking: ThinkingData }) => {
                         )}
                     >
                         {!line.detail && <StepMark line={line} />}
-                        <span className="min-w-0">{line.text}</span>
+                        <span className="min-w-0">
+                            {/* `command` spans are code; raw backticks looked like stray accents in the UI font. */}
+                            {line.text.split("`").map((part, j) =>
+                                j % 2 ? <code key={j} className="rounded bg-muted px-1 font-mono text-[12px]">{part}</code> : part,
+                            )}
+                        </span>
                     </li>
                 ))}
             </ol>

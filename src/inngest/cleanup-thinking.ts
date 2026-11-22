@@ -1,16 +1,56 @@
 import { inngest } from "./client";
 import { prisma } from "@/lib/db";
-import { cleanupThinkingMessageWithError, ThinkingErrorType } from "@/lib/thinking-helpers";
+import { ERROR_MESSAGES, ThinkingErrorType } from "@/lib/thinking-helpers";
+import { refundCreditsForUser } from "@/lib/usage";
+
+// A build is stuck when its thinking log has not changed for this long. Every
+// step the agent takes rewrites the log (and so bumps updatedAt); the longest
+// single step is one model call, which Vercel caps at 300 seconds.
+export const STALL_MS = 10 * 60 * 1000;
+// Upper bound for any build, even one still making progress.
+export const MAX_BUILD_MS = 45 * 60 * 1000;
 
 /**
- * Cleanup cron job that runs every 5 minutes to delete orphaned thinking messages
+ * Stops builds that are stuck: cancels the Inngest run, replaces the thinking
+ * message with an error and refunds the credit.
  *
- * A thinking message is considered orphaned if:
- * - It's been in THINKING state for more than 15 minutes
- * - This indicates the agent crashed, failed, or was cancelled without cleanup
- *
- * Note: 15 minutes allows for complex operations with up to 15 agent iterations with buffer time
+ * Builds used to be judged by age alone (15 minutes after they started), so a
+ * large build on GPT-6.2 Sol or Astra that was still working was killed, shown
+ * as "took too long", left running in the background and not refunded.
  */
+export async function stopStalledBuilds(now = Date.now()) {
+  const stalled = await prisma.message.findMany({
+    where: {
+      type: "THINKING",
+      OR: [
+        { updatedAt: { lt: new Date(now - STALL_MS) } },
+        { createdAt: { lt: new Date(now - MAX_BUILD_MS) } },
+      ],
+    },
+    select: { id: true, projectId: true, project: { select: { userId: true } } },
+  });
+
+  let stopped = 0;
+  for (const msg of stalled) {
+    await inngest.send({ name: "code-agent/cancel", data: { projectId: msg.projectId } });
+    // deleteMany so a build that finished or failed meanwhile (and already
+    // removed its thinking message, and refunded if needed) is left alone.
+    const { count } = await prisma.message.deleteMany({ where: { id: msg.id, type: "THINKING" } });
+    if (!count) continue;
+    await prisma.message.create({
+      data: {
+        projectId: msg.projectId,
+        content: ERROR_MESSAGES[ThinkingErrorType.AGENT_TIMEOUT](),
+        role: "ASSISTANT",
+        type: "ERROR",
+      },
+    });
+    await refundCreditsForUser(msg.project.userId).catch((e) => console.error("Refund after stalled build failed:", e));
+    stopped++;
+  }
+  return { found: stalled.length, stopped };
+}
+
 export const cleanupOrphanedThinkingMessages = inngest.createFunction(
   {
     id: "cleanup-orphaned-thinking",
@@ -18,71 +58,8 @@ export const cleanupOrphanedThinkingMessages = inngest.createFunction(
   },
   { cron: "*/5 * * * *" }, // Run every 5 minutes
   async ({ step }) => {
-    const result = await step.run("delete-orphaned-thinking", async () => {
-      const fifteenMinutesAgo = new Date(Date.now() - 900000); // 15 minutes (increased from 10)
-
-      // Find orphaned thinking messages
-      const orphanedMessages = await prisma.message.findMany({
-        where: {
-          type: "THINKING",
-          createdAt: { lt: fifteenMinutesAgo }
-        },
-        select: {
-          id: true,
-          projectId: true,
-          createdAt: true
-        }
-      });
-
-      if (orphanedMessages.length === 0) {
-        return {
-          deleted: 0,
-          message: "No orphaned thinking messages found"
-        };
-      }
-
-      // Log orphaned messages for monitoring
-      console.warn(
-        `Found ${orphanedMessages.length} orphaned thinking messages:`,
-        orphanedMessages.map(m => ({
-          id: m.id,
-          projectId: m.projectId,
-          age: Math.floor((Date.now() - m.createdAt.getTime()) / 60000) + " minutes"
-        }))
-      );
-
-      // Use unified cleanup function with parallel execution for better performance
-      const cleanupResults = await Promise.allSettled(
-        orphanedMessages.map(orphaned =>
-          cleanupThinkingMessageWithError(
-            orphaned.id,
-            orphaned.projectId,
-            ThinkingErrorType.AGENT_TIMEOUT
-          )
-        )
-      );
-
-      // Count successful cleanups
-      const successCount = cleanupResults.filter(r => r.status === "fulfilled").length;
-      const failureCount = cleanupResults.filter(r => r.status === "rejected").length;
-
-      if (failureCount > 0) {
-        console.error(`${failureCount} cleanup operations failed`);
-      }
-
-      return {
-        deleted: successCount,
-        failed: failureCount,
-        message: `Successfully deleted ${successCount} orphaned thinking messages${failureCount > 0 ? ` (${failureCount} failed)` : ""}`,
-        orphanedIds: orphanedMessages.map(m => m.id)
-      };
-    });
-
-    // Log the result
-    if (result.deleted > 0) {
-      console.info(`Cleanup job completed: ${result.message}`);
-    }
-
+    const result = await step.run("stop-stalled-builds", () => stopStalledBuilds());
+    if (result.stopped > 0) console.warn(`Stopped ${result.stopped} stalled build(s)`);
     return result;
   }
 );

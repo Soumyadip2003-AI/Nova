@@ -16,7 +16,7 @@ export const ERROR_MESSAGES: Record<ThinkingErrorType, (details?: string) => str
     [ThinkingErrorType.SANDBOX_SETUP]: () =>
         "Failed to set up the development environment. Please try again.",
     [ThinkingErrorType.AGENT_TIMEOUT]: () =>
-        "The task took too long to complete. Try breaking it into smaller tasks or simplifying your request.",
+        "This build stopped making progress, so Nova stopped it and refunded your credit. Please try again; for a large app, a lower effort or a smaller first request finishes faster.",
     [ThinkingErrorType.AGENT_ERROR]: (details) =>
         details ? `An error occurred: ${details}` : "An error occurred while processing your request. Please try again.",
     [ThinkingErrorType.CANCELLED]: () =>

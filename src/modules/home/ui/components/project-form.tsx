@@ -246,7 +246,9 @@ export const ProjectForm = () => {
                 </form>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <span className="mr-1 text-[13px] font-medium text-muted-foreground lg:text-white/90">Try</span>
+                    {/* Own backdrop: this row sits on the gradient or on white depending on the hero's
+                        height (signed in vs out), and white text vanished on white. */}
+                    <span className="rounded-full bg-white/70 px-2.5 py-1 text-[13px] font-medium text-[#47546d] backdrop-blur-sm">Try</span>
                     {PROJECT_TEMPLATES.slice(0, 5).map((template) => (
                         <button
                             key={template.title}

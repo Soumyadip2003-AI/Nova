@@ -1,559 +1,126 @@
-# Nova - AI-Powered Code Generation Platform
+# Nova
 
-> Build full-stack applications through natural language conversations with GPT-5.1
+Describe an app in plain words. Nova's AI agent writes the code, runs it in a cloud sandbox, checks it, fixes what is broken and shows you a live preview.
 
-<div align="center">
+**Live:** https://nova-five-black.vercel.app
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.5.6-black)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+![Nova demo: type an idea, Nova builds it, checks it and shows the live app](docs/demo.gif)
 
-[Live Demo](https://nova-five-black.vercel.app/) · [Report Bug](https://github.com/yourusername/nova/issues) · [Request Feature](https://github.com/yourusername/nova/issues)
+## What it does
 
-</div>
+- **Build from a prompt.** The agent writes a Next.js app inside an isolated E2B sandbox.
+- **Self-check and repair.** After writing, Nova runs TypeScript and loads the app's home page. Any error goes back to the agent to fix before you see the result.
+- **Real thinking log.** Each step the agent takes is shown as it happens, collapsed to two lines with a toggle.
+- **Live preview, code and versions.** Every change is saved as a version you can open again.
+- **Chat.** Ask questions about your app without spending a build credit.
+- **Models.** Free: GPT-6 Luna, GPT-4o Mini. Pro adds GPT-4o, GPT-4 Turbo, GPT-6.1 Terra, GPT-5.1, GPT-6.2 Sol and GPT-6.2 Astra. Sol and Astra have an effort setting (Low to Extra high).
+- **Credits.** Free: 5 builds a month. Pro: 100 builds a month. A build that fails is refunded.
 
----
+## How a build works
 
-## 🌟 Overview
-
-**Nova** is a revolutionary AI-powered development platform that transforms natural language descriptions into production-ready Next.js applications. Built with GPT-5.1 and powered by autonomous AI agents, Nova enables developers to generate, iterate, and deploy full-stack web applications through simple conversations.
-
-### ✨ Key Features
-
-- **🤖 AI-Powered Code Generation**: GPT-5.1 agents write production-quality code based on your descriptions
-- **💬 Interactive Chat Interface**: Ask questions, request features, and iterate on your codebase conversationally
-- **🔄 Live Preview**: Instant sandboxed preview of generated applications with hot reload
-- **📝 Version History**: Track and manage multiple iterations (fragments) of your project
-- **🎨 Modern UI**: Beautiful, responsive interface built with Tailwind CSS and shadcn/ui
-- **🔐 Secure Authentication**: User management powered by Clerk
-- **💳 Flexible Pricing**: Free tier + Pro plan with Clerk Commerce integration
-- **⚡ Real-time Updates**: Live progress tracking with "thinking" indicators
-- **🎯 Smart Credit System**: Usage-based pricing with automatic reset cycles
-
----
-
-## 🏗️ Architecture
-
-### Tech Stack
-
-**Frontend**
-- [Next.js 15.5.6](https://nextjs.org/) - React framework with App Router
-- [React 19](https://react.dev/) - UI library
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
-- [Tailwind CSS 4](https://tailwindcss.com/) - Utility-first CSS
-- [shadcn/ui](https://ui.shadcn.com/) - Beautiful component library
-- [Radix UI](https://www.radix-ui.com/) - Accessible primitives
-- [Lucide Icons](https://lucide.dev/) - Icon system
-
-**Backend**
-- [tRPC](https://trpc.io/) - End-to-end typesafe APIs
-- [Prisma](https://www.prisma.io/) - Next-generation ORM
-- [PostgreSQL](https://www.postgresql.org/) (Neon) - Database
-- [Zod](https://zod.dev/) - Schema validation
-
-**AI & Agents**
-- [GPT-5.1](https://openai.com/) - Latest OpenAI model
-- [Inngest Agent Kit](https://www.inngest.com/) - AI agent orchestration
-- [E2B Sandboxes](https://e2b.dev/) - Secure code execution environments
-- [OpenAI SDK](https://github.com/openai/openai-node) - AI completions
-
-**Authentication & Payments**
-- [Clerk](https://clerk.com/) - User authentication & management
-- [Clerk Commerce](https://clerk.com/docs/products/commerce) - Subscription & payment processing
-
-**Infrastructure**
-- [Vercel](https://vercel.com/) - Deployment platform
-- [Inngest](https://www.inngest.com/) - Background job processing
-- [Neon](https://neon.tech/) - Serverless Postgres
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **Node.js**: v20 or higher
-- **npm**: v10 or higher
-- **PostgreSQL**: Neon database (or local Postgres)
-- **Accounts**: Clerk, OpenAI, E2B, Inngest
-
-### Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-# Database
-DATABASE_URL="postgresql://..."
-
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
-CLERK_SECRET_KEY="sk_test_..."
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
-
-# OpenAI
-OPENAI_API_KEY="sk-..."
-
-# E2B Sandboxes
-E2B_API_KEY="e2b_..."
-E2B_TEMPLATE_ID="..."
-
-# Inngest
-INNGEST_EVENT_KEY="..."
-INNGEST_SIGNING_KEY="..."
-
-# App URL
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```mermaid
+flowchart LR
+    U([You type an idea]) --> C{Credit left?}
+    C -- no --> P[Upgrade prompt]
+    C -- yes --> E[Inngest event]
+    E --> A[AI agent]
+    A <-- "terminal, readFiles,<br/>createOrUpdateFiles" --> S[(E2B sandbox<br/>Next.js app)]
+    A --> V{Self-check:<br/>tsc + page load}
+    V -- problems --> R[Repair round<br/>up to 2] --> A
+    V -- passes --> L[Save version<br/>and live preview]
+    R -. still broken .-> F[Show what is left<br/>and refund the credit]
 ```
 
-### Installation
+Every step the agent takes is written to the thinking log, so you watch the real work, not a spinner.
 
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/nova.git
-cd nova
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Browser
+        UI[Next.js UI<br/>chat, thinking log,<br/>preview, code]
+    end
+    subgraph Vercel
+        API[tRPC API]
+        PX[OpenAI proxy<br/>/api/ai/openai]
+        IN[Inngest functions]
+    end
+    UI -- tRPC --> API
+    API -- auth, plans --> CL[Clerk]
+    API -- projects, messages,<br/>credits --> DB[(Neon Postgres<br/>via Prisma)]
+    API -- build event --> IN
+    IN -- agent calls --> PX --> OA[OpenAI]
+    IN -- run code --> SB[(E2B sandbox)]
+    IN -- thinking steps,<br/>result --> DB
+    UI -- live preview iframe --> SB
+    CL -- user webhooks --> API
 ```
 
-2. **Install dependencies**
-```bash
-npm install
+### Model routing
+
+GPT-6.2 Sol and Astra only accept tools together with a reasoning effort on OpenAI's Responses API. The agent library speaks Chat Completions, so Nova's proxy translates those calls both ways. Other models pass straight through.
+
+```mermaid
+flowchart LR
+    AG[Agent<br/>Chat Completions] --> PX{Effort set?}
+    PX -- "no (GPT-4o, GPT-5.1, Luna...)" --> CC["/v1/chat/completions"]
+    PX -- "yes (Sol, Astra)" --> TR[Translate request] --> RS["/v1/responses"] --> TB[Translate reply back] --> AG
+    CC --> AG
 ```
 
-3. **Set up the database**
-```bash
-# Generate Prisma client
-npx prisma generate
-
-# Run migrations
-npx prisma migrate deploy
-
-# (Optional) Seed the database
-npm run prisma:seed
-```
-
-4. **Start the development server**
-```bash
-npm run dev
-```
-
-5. **Start Inngest dev server** (in a separate terminal)
-```bash
-npx inngest-cli@latest dev
-```
-
-Open [https://nova-five-black.vercel.app/](https://nova-five-black.vercel.app/) in your browser.
-
----
-
-## 📖 Usage
-
-### Creating Your First Project
-
-1. **Sign up / Sign in** using Clerk authentication
-2. **Create a new project** by describing what you want to build
-3. **Watch the AI agent** generate your application in real-time
-4. **Preview** the live application in the embedded sandbox
-5. **Iterate** by asking questions or requesting changes
-6. **Download** or deploy your generated code
-
-### Example Prompts
-
-```
-"Create a beautiful landing page for a SaaS product with a hero section,
-features grid, pricing table, and contact form"
-
-"Build a todo app with drag-and-drop functionality and local storage"
-
-"Make a weather dashboard that shows current conditions and a 7-day forecast"
-```
-
-### Credit System
-
-- **Free Tier**: 5 monthly credits
-- **Pro Plan**: 100 monthly credits
-- **Cost**: 1 credit per generation or question
-- **Reset**: Credits reset every 30 days
-- **Upgrade**: Subscribe to Pro via Clerk Commerce
-
----
-
-## 🏛️ Project Structure
-
-```
-nova/
-├── prisma/
-│   ├── schema.prisma          # Database schema
-│   └── migrations/            # Database migrations
-├── src/
-│   ├── app/                   # Next.js App Router
-│   │   ├── (home)/           # Public pages
-│   │   ├── projects/         # Project pages
-│   │   └── api/              # API routes
-│   ├── components/           # Shared components
-│   │   └── ui/               # shadcn/ui components
-│   ├── modules/              # Feature modules
-│   │   ├── home/
-│   │   ├── messages/
-│   │   ├── projects/
-│   │   └── usage/
-│   ├── inngest/              # Inngest functions & agents
-│   │   ├── client.ts
-│   │   ├── functions.ts      # AI agent logic
-│   │   └── utils.ts
-│   ├── lib/                  # Utility libraries
-│   │   ├── db.ts             # Prisma client
-│   │   ├── usage.ts          # Credit management
-│   │   └── thinking-helpers.ts
-│   ├── trpc/                 # tRPC configuration
-│   │   ├── init.ts
-│   │   └── routers/
-│   ├── hooks/                # React hooks
-│   ├── middleware.ts         # Auth middleware
-│   └── prompt.ts             # AI prompts
-├── public/                   # Static assets
-├── .env                      # Environment variables
-├── package.json
-└── tsconfig.json
-```
-
----
-
-## 🤖 How It Works
-
-### 1. **User Input**
-User describes their desired application in natural language through the chat interface.
-
-### 2. **Credit Validation**
-System checks if user has sufficient credits before starting generation.
-
-### 3. **Agent Orchestration**
-Inngest triggers an autonomous AI agent powered by GPT-5.1 with:
-- Custom system prompt optimized for Next.js 15
-- Tool access (terminal, file operations)
-- Sandbox environment for code execution
-
-### 4. **Code Generation**
-The AI agent:
-- Analyzes the request
-- Plans the implementation
-- Writes production-quality code
-- Installs necessary dependencies
-- Tests the application in the sandbox
-
-### 5. **Live Preview**
-Generated code runs in an isolated E2B sandbox with:
-- Live preview URL
-- Hot reload enabled
-- 20-minute timeout for Pro users
-- Full Next.js environment
-
-### 6. **Iteration**
-Users can:
-- Ask questions about the generated code
-- Request modifications or new features
-- View previous versions (fragments)
-- Download the complete codebase
-
-### 7. **Credit Consumption**
-- Credits consumed upfront (prevents abuse)
-- Automatic refund if generation fails
-- Database-level protection with CHECK constraints
-- Atomic operations prevent race conditions
-
----
-
-## 🔒 Security & Architecture Patterns
-
-### Credit System Protection
-
-**Problem**: Race conditions could allow negative credits or free generations during DB failures.
-
-**Solution**: Consume-upfront-refund-on-failure pattern
-```typescript
-// 1. Consume credits BEFORE expensive operation
-await consumeCreditsForUser(userId);
-
-try {
-  // 2. Run expensive operation (code generation)
-  await generateCode();
-} catch (error) {
-  // 3. Automatic refund on failure
-  await refundCreditsForUser(userId);
-  throw error;
-}
-```
-
-**Database Protection**:
-```sql
-ALTER TABLE "Usage"
-ADD CONSTRAINT "Usage_points_check"
-CHECK ("points" >= 0);
-```
-
-### Authentication Flow
-
-1. **Clerk Middleware**: Protects routes based on authentication status
-2. **Public Routes**: `/`, `/sign-in`, `/sign-up`, `/pricing`, `/api/*`
-3. **Protected Routes**: Everything else requires authentication
-4. **Session Management**: Handled automatically by Clerk
-
-### Sandbox Security
-
-- **Isolated Environments**: Each generation runs in a separate E2B sandbox
-- **Timeout Limits**: Automatic termination after configured duration
-- **Resource Constraints**: CPU and memory limits enforced
-- **No External Access**: Sandboxes cannot access external services
-
----
-
-## 🎨 UI Components
-
-Built with [shadcn/ui](https://ui.shadcn.com/) for consistency and accessibility:
-
-- **Buttons**: Primary, secondary, outline, ghost variants
-- **Cards**: Project cards, feature cards, pricing cards
-- **Dialogs**: Modals for confirmations and forms
-- **Forms**: Validated forms with react-hook-form + Zod
-- **Alerts**: Success, error, warning, info messages
-- **Progress**: Loading states and progress indicators
-- **Badges**: Status badges for plans and features
-- **Tooltips**: Contextual help and information
-- **Toasts**: Non-blocking notifications with Sonner
-
----
-
-## 📊 Database Schema
-
-### Core Models
-
-**Project**
-```prisma
-model Project {
-  id        String   @id @default(uuid())
-  name      String
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  messages  Message[]
-}
-```
-
-**Message**
-```prisma
-model Message {
-  id        String      @id @default(uuid())
-  content   String?
-  role      MessageRole  // USER | ASSISTANT
-  type      MessageType  // RESULT | ERROR | THINKING | CHAT
-  thinking  Json?       // Progress tracking
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  project   Project     @relation(...)
-  projectId String
-  fragment  Fragment?
-}
-```
-
-**Fragment**
-```prisma
-model Fragment {
-  id         String  @id @default(uuid())
-  messageId  String  @unique
-  message    Message @relation(...)
-  sandboxUrl String
-  title      String
-  files      Json    // Generated code files
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-```
-
-**Usage**
-```prisma
-model Usage {
-  key     String   @id      // userId
-  points  Int                // Remaining credits
-  expire  DateTime           // Reset date
-  plan    UserPlan @default(FREE)  // FREE | PRO
-}
-```
-
----
-
-## 🔄 API Routes
-
-### tRPC Procedures
-
-**Projects**
-- `projects.getMany` - List user's projects
-- `projects.getOne` - Get project by ID
-- `projects.create` - Create new project (triggers AI generation)
-- `projects.remove` - Delete project
-
-**Messages**
-- `messages.getMany` - List project messages
-- `messages.create` - Send message (question or code request)
-
-**Usage**
-- `usage.getStatus` - Get current credit status
-- `usage.subscribe` - Subscribe to Pro plan
-
-### REST API Endpoints
-
-- `POST /api/upgrade-to-pro` - Manual Pro upgrade
-- `GET /api/test-usage` - Test usage status (dev only)
-- `POST /api/test-consume-credit` - Test credit consumption (dev only)
-- `GET /api/debug-subscription` - Debug Clerk subscription (dev only)
-
----
-
-## 🎯 Performance Optimizations
-
-### Client-Side
-- **React Server Components**: Reduced client bundle size
-- **Code Splitting**: Dynamic imports for heavy components
-- **Image Optimization**: Next.js Image component
-- **Font Optimization**: Next.js Font optimization
-- **Lazy Loading**: Components loaded on demand
-
-### Server-Side
-- **Database Connection Pooling**: Prisma with Neon
-- **Query Optimization**: Indexed fields and selective includes
-- **Caching**: React Query for client-side caching
-- **Background Jobs**: Inngest for async processing
-- **Streaming**: Real-time updates with Server-Sent Events
-
-### Database
-- **Indexes**: Strategic indexes on frequently queried fields
-- **Constraints**: CHECK constraints for data integrity
-- **Cascade Deletes**: Automatic cleanup of related records
-- **Atomic Operations**: Prevent race conditions
-
----
-
-## 🧪 Testing
+## Stack
+
+Next.js 15 (App Router), React 19, Tailwind CSS 4, tRPC, TanStack Query, Prisma on Neon Postgres, Clerk (auth and billing), Inngest with Agent Kit (background agent), E2B (sandboxes), OpenAI.
+
+## Run it locally
+
+Requires Node.js 20 or later and accounts for Clerk, Neon (or any Postgres), Inngest, E2B and OpenAI.
+
+1. Install:
+   ```bash
+   git clone https://github.com/Soumyadip2003-AI/Nova.git
+   cd Nova
+   npm install
+   ```
+2. Set these environment variables (for example in `.env.local`):
+   ```
+   DATABASE_URL
+   OPENAI_API_KEY
+   E2B_API_KEY
+   E2B_TEMPLATE_ID
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+   CLERK_SECRET_KEY
+   CLERK_WEBHOOK_SIGNING_SECRET
+   CLERK_PRO_PLAN_ID
+   CLERK_PRO_PLAN_SLUG
+   CLERK_PRO_PLAN_NAME
+   INNGEST_EVENT_KEY
+   INNGEST_SIGNING_KEY
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
+3. Create the database tables:
+   ```bash
+   npx prisma migrate deploy
+   ```
+4. Start the app and, in a second terminal, the Inngest dev server:
+   ```bash
+   npm run dev
+   npx inngest-cli@latest dev
+   ```
+
+The sandbox image lives in `sandbox-templates/nextjs`. Build it with the E2B CLI and put its ID in `E2B_TEMPLATE_ID`.
+
+## Checks
 
 ```bash
-# Run type checking
-npm run type-check
-
-# Run linting
-npm run lint
-
-# Run tests (if configured)
-npm test
-
-# Build production bundle
+npm test   # lint and typecheck
 npm run build
 ```
 
----
+## Contact
 
-## 🚢 Deployment
+Nova is run by Soumyadip Sarkar, India. Email soumyadip.0202@gmail.com or open an issue at https://github.com/Soumyadip2003-AI/Nova/issues.
 
-### Deploy to Vercel
+## License
 
-1. **Push to GitHub**
-```bash
-git push origin main
-```
-
-2. **Import to Vercel**
-- Connect your GitHub repository
-- Configure environment variables
-- Deploy
-
-3. **Set up Webhooks**
-- Configure Clerk webhooks for user events
-- Set up Inngest webhook endpoints
-
-### Environment Setup
-
-Ensure all production environment variables are configured:
-- Database connection (Neon)
-- Clerk keys (production)
-- OpenAI API key
-- E2B API key & template
-- Inngest production keys
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-
-- Use TypeScript for all new code
-- Follow ESLint configuration
-- Use Prettier for formatting
-- Write meaningful commit messages
-- Add tests for new features
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) - The React framework for production
-- [Vercel](https://vercel.com/) - Platform for deployment
-- [Clerk](https://clerk.com/) - Authentication and user management
-- [OpenAI](https://openai.com/) - GPT-5.1 AI model
-- [E2B](https://e2b.dev/) - Secure code execution sandboxes
-- [Inngest](https://www.inngest.com/) - Background job processing
-- [shadcn](https://ui.shadcn.com/) - Beautiful UI components
-- [Prisma](https://www.prisma.io/) - Next-generation ORM
-
----
-
-## 💬 Support
-
-- **Documentation**: [docs.example.com](https://docs.example.com)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/nova/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/nova/discussions)
-- **Email**: soumyadip.0202@gmail.com
-
----
-
-## 🗺️ Roadmap
-
-- [ ] **Multi-language Support**: Support for Python, Go, Rust backends
-- [ ] **Team Collaboration**: Share projects with team members
-- [ ] **Version Control**: Git integration and commit history
-- [ ] **Templates**: Pre-built project templates
-- [ ] **API Export**: Export projects as REST APIs
-- [ ] **Mobile App**: iOS and Android applications
-- [ ] **Custom Models**: Fine-tuned models for specific frameworks
-- [ ] **Enterprise Plan**: Advanced features for organizations
-
----
-
-## 📊 Stats
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/nova?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/nova?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/yourusername/nova?style=social)
-
----
-
-<div align="center">
-
-**Built with ❤️ by the Nova Team**
-
-[Website](https://example.com) · [Twitter](https://twitter.com/nova) · [Discord](https://discord.gg/nova)
-
-</div>
+MIT. See [LICENSE](LICENSE).
