@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES } from "../../constants";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { formatDistanceStrict } from "date-fns";
+import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ModelSelector } from "@/components/model-selector";
 import { getDefaultModel } from "@/lib/models";
@@ -134,9 +134,8 @@ export const ProjectForm = () => {
     const isButtonDisabled = !form.formState.isValid || createProject.isPending || (isSignedIn && isOutOfCredits);
     const isSubmitting = createProject.isPending;
 
-    const countdown = resetDate && resetDate > now
-        ? formatDistanceStrict(resetDate, now, { roundingMethod: "ceil" })
-        : null;
+    // A date, not a rounded duration: "in 2 months" was shown for a 30-day reset.
+    const countdown = resetDate && resetDate > now ? format(resetDate, "d MMM") : null;
 
     return (
         <Form {...form}>
@@ -224,7 +223,7 @@ export const ProjectForm = () => {
                                 {usage.plan === "PRO" ? "Pro" : "free"} credit{usage.remainingPoints !== 1 ? "s" : ""} left
                             </p>
                         )}
-                        {countdown && <p>Resets in {countdown}</p>}
+                        {countdown && <p>Resets on {countdown}</p>}
                         {usage.plan !== "PRO" && (
                             <Link
                                 href="/pricing"
