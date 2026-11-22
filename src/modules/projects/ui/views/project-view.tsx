@@ -10,11 +10,8 @@ import { Fragment } from "@/generated/prisma";
 import { ProjectHeader } from "../components/project-header";
 import { FragmentWeb } from "../components/fragment-web";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EyeIcon, CodeIcon, CrownIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { EyeIcon, CodeIcon } from "lucide-react";
 import { FileExplorer } from "@/components/file-explorer";
-import { cn } from "@/lib/utils";
 import { UserControl } from "@/components/user-control";
 
 interface Props {
@@ -23,53 +20,50 @@ interface Props {
 
 // Loading skeleton for messages
 const MessagesLoadingSkeleton = () => (
-    <div className="flex flex-col h-full">
-        <div className="flex-1 p-4 space-y-4">
-            {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
-                    <div className="size-8 rounded-full bg-muted" />
-                    <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded-lg w-24" />
-                        <div className="h-16 bg-muted rounded-2xl w-3/4" />
-                    </div>
-                </div>
-            ))}
-        </div>
+    <div className="flex h-full flex-col gap-4 p-5" role="status">
+        <span className="sr-only">Loading the chat</span>
+        <div className="ml-auto h-12 w-3/4 animate-pulse rounded-xl bg-muted" />
+        <div className="h-36 w-full animate-pulse rounded-xl bg-muted" />
+        <div className="h-4 w-2/3 animate-pulse rounded-[10px] bg-muted" />
     </div>
 );
 
 // Loading skeleton for header
 const HeaderLoadingSkeleton = () => (
-    <div className="p-3 flex items-center gap-3 border-b animate-pulse">
-        <div className="size-8 rounded-lg bg-muted" />
-        <div className="h-5 bg-muted rounded-lg w-32" />
+    <div className="flex items-center gap-3" role="status">
+        <span className="sr-only">Loading the project</span>
+        <div className="size-7 animate-pulse rounded-[10px] bg-muted" />
+        <div className="h-5 w-40 animate-pulse rounded-[10px] bg-muted" />
     </div>
 );
 
-// Empty state for preview
-const EmptyPreviewState = () => (
-    <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-muted/30 to-muted/10">
-        <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-3xl blur-2xl" />
-            <div className="relative size-20 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center border border-amber-200/50 dark:border-amber-500/20">
-                <EyeIcon className="size-8 text-amber-500" />
-            </div>
-        </div>
-        <h3 className="text-xl font-semibold mb-2">No Preview Yet</h3>
-        <p className="text-sm text-muted-foreground text-center max-w-xs">
-            Start a conversation and Nova will generate a preview for you to see here.
-        </p>
+const EmptyState = ({
+    icon: Icon,
+    title,
+    body,
+}: {
+    icon: typeof EyeIcon;
+    title: string;
+    body: string;
+}) => (
+    <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+        <span className="mb-5 flex size-12 items-center justify-center rounded-[10px] border-[1.5px] border-foreground bg-background">
+            <Icon className="size-5" aria-hidden />
+        </span>
+        <h2 className="font-display text-xl font-bold text-balance">{title}</h2>
+        <p className="mt-2 max-w-xs text-sm text-muted-foreground text-pretty">{body}</p>
     </div>
 );
 
-
+const tabTriggerClass =
+    "h-9 flex-none gap-2 rounded-[10px] border-0 px-4 text-sm font-medium text-muted-foreground shadow-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none dark:text-muted-foreground dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground";
 
 export const ProjectView = ({ projectId }: Props) => {
     const [activeFragment, setActiveFragment] = useState<Fragment | null>(null);
     const [tabState, setTabState] = useState<"preview" | "code">("preview");
     const trpc = useTRPC();
     const isMobile = useIsMobile();
-    
+
     // Ensure project exists and is hydrated from server prefetch
     useSuspenseQuery({
         ...trpc.projects.getOne.queryOptions({
@@ -79,129 +73,108 @@ export const ProjectView = ({ projectId }: Props) => {
     });
 
     return (
-        <div className="h-screen bg-background">
-            <ResizablePanelGroup direction="horizontal">
-                {/* Left Panel - Messages */}
-                <ResizablePanel
-                    defaultSize={isMobile ? 80 : 35}
-                    minSize={isMobile ? 0 : 25}
-                    maxSize={isMobile ? 100 : 50}
-                    className="flex flex-col min-h-0"
-                >
-                    {/* Gradient background for left panel */}
-                    <div className="flex flex-col h-full bg-gradient-to-b from-background via-background to-muted/20 relative">
-                        {/* Subtle pattern overlay */}
-                        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none" />
+        <div className="flex h-dvh flex-col bg-background text-foreground">
+            {/* Workspace header */}
+            <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b-[1.5px] border-foreground bg-card px-3 sm:px-5">
+                <Suspense fallback={<HeaderLoadingSkeleton />}>
+                    <ProjectHeader projectId={projectId} />
+                </Suspense>
 
-                        <div className="relative z-10 flex flex-col h-full">
-                            <Suspense fallback={<HeaderLoadingSkeleton />}>
-                                <ProjectHeader projectId={projectId} />
-                            </Suspense>
-                            <Suspense fallback={<MessagesLoadingSkeleton />}>
-                                <MessagesContainer
-                                    projectId={projectId}
-                                    activeFragment={activeFragment}
-                                    setActiveFragment={setActiveFragment}
-                                />
-                            </Suspense>
-                        </div>
-                    </div>
+                <div className="flex shrink-0 items-center gap-2">
+                    <UserControl />
+                </div>
+            </header>
+
+            <main className="flex min-h-0 flex-1">
+            {/* Phones stack chat above preview; wider screens sit them side by side */}
+            <ResizablePanelGroup
+                key={isMobile ? "vertical" : "horizontal"}
+                direction={isMobile ? "vertical" : "horizontal"}
+                className="min-h-0 flex-1"
+            >
+                {/* Left panel: chat */}
+                <ResizablePanel
+                    defaultSize={isMobile ? 55 : 35}
+                    minSize={25}
+                    maxSize={isMobile ? 75 : 50}
+                    className="flex min-h-0 flex-col bg-card"
+                >
+                    <section aria-label="Chat" className="flex h-full min-h-0 flex-col">
+                        <Suspense fallback={<MessagesLoadingSkeleton />}>
+                            <MessagesContainer
+                                projectId={projectId}
+                                activeFragment={activeFragment}
+                                setActiveFragment={setActiveFragment}
+                            />
+                        </Suspense>
+                    </section>
                 </ResizablePanel>
 
-                {/* Resizable Handle */}
                 <ResizableHandle
                     withHandle
-                    className="bg-border/50 hover:bg-amber-500/20 transition-colors data-[resize-handle-active]:bg-amber-500/30"
+                    className="w-[1.5px] bg-foreground focus-visible:ring-2 focus-visible:ring-ring data-[panel-group-direction=vertical]:h-[1.5px] data-[panel-group-direction=vertical]:w-full"
                 />
 
-                {/* Right Panel - Preview/Code */}
+                {/* Right panel: preview and code */}
                 <ResizablePanel
-                    defaultSize={isMobile ? 20 : 65}
-                    minSize={isMobile ? 0 : 50}
+                    defaultSize={isMobile ? 45 : 65}
+                    minSize={isMobile ? 25 : 50}
                 >
                     <Tabs
-                        className="h-full flex flex-col"
+                        className="flex h-full min-h-0 flex-col gap-3 p-3 sm:px-5 sm:pt-4 sm:pb-5"
                         defaultValue="preview"
                         value={tabState}
                         onValueChange={(value) => setTabState(value as "preview" | "code")}
                     >
-                        {/* Tab Header */}
-                        <div className="flex items-center justify-between p-3 border-b bg-card/50 backdrop-blur-sm">
-                            <TabsList className="h-9 p-1 bg-muted/50 rounded-xl">
-                                <TabsTrigger
-                                    value="preview"
-                                    className={cn(
-                                        "rounded-lg gap-2 px-4 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm",
-                                        "data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400"
-                                    )}
-                                >
-                                    <EyeIcon className="size-4" />
-                                    <span className="font-medium">Demo</span>
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="code"
-                                    className={cn(
-                                        "rounded-lg gap-2 px-4 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm",
-                                        "data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400"
-                                    )}
-                                >
-                                    <CodeIcon className="size-4" />
-                                    <span className="font-medium">Code</span>
-                                </TabsTrigger>
-                            </TabsList>
+                        <TabsList
+                            aria-label="View"
+                            className="h-auto gap-1 rounded-[10px] bg-muted p-1"
+                        >
+                            <TabsTrigger value="preview" className={tabTriggerClass}>
+                                <EyeIcon className="size-4" aria-hidden />
+                                Preview
+                            </TabsTrigger>
+                            <TabsTrigger value="code" className={tabTriggerClass}>
+                                <CodeIcon className="size-4" aria-hidden />
+                                Code
+                            </TabsTrigger>
+                        </TabsList>
 
-                            <div className="flex items-center gap-2">
-                                {/* Upgrade Button */}
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className={cn(
-                                        "rounded-xl gap-2 px-4 transition-all",
-                                        "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
-                                        "text-white shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30"
-                                    )}
-                                >
-                                    <Link href="/pricing">
-                                        <CrownIcon className="size-4" />
-                                        <span>Upgrade</span>
-                                    </Link>
-                                </Button>
-                                <UserControl/>
-                            </div>
-                        </div>
-
-                        {/* Tab Content */}
-                        <TabsContent value="preview" className="flex-1 m-0 data-[state=inactive]:hidden">
+                        <TabsContent
+                            value="preview"
+                            className="m-0 min-h-0 flex-1 overflow-hidden rounded-2xl border-[1.5px] border-foreground bg-card data-[state=inactive]:hidden"
+                        >
                             {activeFragment ? (
                                 <FragmentWeb data={activeFragment} />
                             ) : (
-                                <EmptyPreviewState />
+                                <EmptyState
+                                    icon={EyeIcon}
+                                    title="No preview yet"
+                                    body="Tell Nova what to build in the chat. Your app shows up here when it is ready."
+                                />
                             )}
                         </TabsContent>
 
-                        <TabsContent value="code" className="flex-1 m-0 min-h-0 data-[state=inactive]:hidden">
+                        <TabsContent
+                            value="code"
+                            className="m-0 min-h-0 flex-1 overflow-hidden rounded-2xl border-[1.5px] border-foreground bg-card data-[state=inactive]:hidden"
+                        >
                             {activeFragment?.files ? (
                                 <FileExplorer
                                     files={activeFragment.files as { [path: string]: string }}
                                 />
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-muted/30 to-muted/10">
-                                    <div className="relative mb-6">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-2xl" />
-                                        <div className="relative size-20 rounded-2xl bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 flex items-center justify-center border border-blue-200/50 dark:border-blue-500/20">
-                                            <CodeIcon className="size-8 text-blue-500" />
-                                        </div>
-                                    </div>
-                                    <h3 className="text-xl font-semibold mb-2">No Code Yet</h3>
-                                    <p className="text-sm text-muted-foreground text-center max-w-xs">
-                                        Generated code will appear here once Nova creates something for you.
-                                    </p>
-                                </div>
+                                <EmptyState
+                                    icon={CodeIcon}
+                                    title="No code yet"
+                                    body="The files Nova writes for your app show up here. You never have to edit them."
+                                />
                             )}
                         </TabsContent>
                     </Tabs>
                 </ResizablePanel>
             </ResizablePanelGroup>
+            </main>
         </div>
     );
 };

@@ -19,10 +19,10 @@ export const CodeView =({
     useEffect(()=>{
         Prism.highlightAll();
     },[code]);
-    
+
     return(
-        <pre className="p-2 bg-transparent border-none rounded-none m-0 text-xs">
-            <code className={`language-${lang}`}>
+        <pre className="m-0 rounded-none border-none bg-transparent p-4 font-mono! text-[13px] leading-relaxed">
+            <code className={`language-${lang} font-mono!`}>
                 {code}
             </code>
         </pre>
@@ -30,4 +30,3 @@ export const CodeView =({
 
 
 }
-

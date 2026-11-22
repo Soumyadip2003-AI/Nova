@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { CrownIcon } from "lucide-react";
+import { AlertCircleIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { useState, useEffect } from "react";
 
@@ -37,58 +37,42 @@ export const Usage = ({ points, msBeforeNext, plan = "FREE", totalCredits }: Pro
         return () => clearInterval(interval);
     }, []);
 
+    const resetsIn = formatDuration(
+        intervalToDuration({
+            start: now,
+            end: resetDate,
+        }),
+        {format:["days","hours","minutes","seconds"]}
+    );
+
     return(
-        <div className={`rounded-t-xl border border-b-0 p-2.5 ${
-            isOutOfCredits
-                ? 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-800'
-                : isPro
-                    ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700'
-                    : 'bg-background'
-        }`}>
-            <div className="flex items-center gap-x-2">
-                <div>
-                    {isPro && (
-                        <div className="flex items-center gap-1 mb-0.5">
-                            <CrownIcon className="size-3 text-amber-500" />
-                            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Pro</span>
-                        </div>
-                    )}
-                    {isOutOfCredits ? (
-                        <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                            You have run out of credits
-                        </p>
-                    ) : (
-                        <p className="text-sm">
-                            <span className="font-semibold">{points}</span>
-                            {isPro ? "" : " free"} credit{points !== 1 ? 's' : ''} remaining
-                            {totalCredits && (
-                                <span className="text-muted-foreground"> / {totalCredits}</span>
-                            )}
-                        </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                        Resets in {formatDuration(
-                            intervalToDuration({
-                                start: now,
-                                end: resetDate,
-                            }),
-                            {format:["days","hours","minutes","seconds"]}
-                        )}
-                    </p>
-                </div>
-                {!isPro && (
-                    <Button
-                        asChild
-                        size="sm"
-                        variant="default"
-                        className="ml-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all duration-300"
-                    >
-                        <Link href="/pricing">
-                            <CrownIcon className="size-4 mr-1.5" /> Upgrade
-                        </Link>
-                    </Button>
-                )}
-            </div>
+        <div
+            className={cn(
+                "mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px] px-3 py-2 text-sm",
+                isOutOfCredits ? "bg-destructive-soft" : "bg-muted"
+            )}
+        >
+            {isOutOfCredits ? (
+                <p className="flex items-center gap-1.5 font-semibold">
+                    <AlertCircleIcon className="size-4 shrink-0 text-destructive" aria-hidden />
+                    You have run out of credits
+                </p>
+            ) : (
+                <p className="font-mono text-xs">
+                    {isPro && <span className="mr-2 font-sans font-semibold">Pro</span>}
+                    {totalCredits != null ? `${points} of ${totalCredits}` : points}
+                    {" "}credit{(totalCredits ?? points) !== 1 ? "s" : ""} left
+                </p>
+            )}
+            <p className="font-mono text-xs text-muted-foreground">Resets in {resetsIn}</p>
+            {!isPro && (
+                <Link
+                    href="/pricing"
+                    className="ml-auto inline-flex h-8 items-center rounded-[10px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    Get more
+                </Link>
+            )}
         </div>
     )
 }

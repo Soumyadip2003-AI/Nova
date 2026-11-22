@@ -50,7 +50,9 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
     }, [lastFragmentId, setActiveFragment, onNewFragment, lastFragmentMessage?.fragment]);
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        bottomRef.current?.scrollIntoView({
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        });
     }, [messages.length]);
 
     const lastMessage = messages[messages.length - 1];
@@ -62,42 +64,30 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
     }, [refetch]);
 
     return (
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-h-0 bg-card">
             {/* Messages area */}
-            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent hover:scrollbar-thumb-border">
-                <div className="py-6 px-3 space-y-1">
+            <div
+                tabIndex={0}
+                role="region"
+                aria-label="Chat history"
+                className="flex-1 min-h-0 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            >
+                <div className="px-4 py-5 sm:px-5">
                     {/* Welcome message when no messages */}
                     {messages.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* Icon with glow */}
-                            <div className="relative mb-6">
-                                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-3xl blur-2xl" />
-                                <div className="relative size-20 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center border border-amber-200/50 dark:border-amber-500/20 shadow-xl">
-                                    <MessageCircleIcon className="size-9 text-amber-500" />
-                                </div>
-                            </div>
-
-                            {/* Text content */}
-                            <h3 className="text-xl font-semibold mb-2">Start a conversation</h3>
-                            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-6">
-                                Describe what you want to build and Nova will help you create it instantly.
+                        <div className="flex flex-col items-center justify-center px-2 py-16 text-center">
+                            <span className="mb-5 flex size-12 items-center justify-center rounded-2xl border-[1.5px] border-foreground bg-card">
+                                <MessageCircleIcon className="size-5" aria-hidden />
+                            </span>
+                            <h2 className="mb-2 font-display text-xl font-bold">Tell Nova what to build</h2>
+                            <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+                                Describe it in plain words. Nova builds it and checks it works before you see it.
                             </p>
-
-                            {/* Feature badges */}
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {["React Apps", "Landing Pages", "Dashboards", "UI Components"].map((feature) => (
-                                    <div
-                                        key={feature}
-                                        className="px-3 py-1.5 rounded-full bg-muted/50 border border-border/50 text-xs text-muted-foreground"
-                                    >
-                                        {feature}
-                                    </div>
-                                ))}
-                            </div>
                         </div>
                     )}
 
                     {/* Messages */}
+                    <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Chat messages">
                     {messages.map((message) => {
                         if (message.type === "THINKING") return null;
 
@@ -114,6 +104,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
                             />
                         );
                     })}
+                    </div>
 
                     {/* Loading state */}
                     {(isLastMessageUser || lastThinkingMessage) && (
@@ -125,10 +116,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
             </div>
 
             {/* Input area */}
-            <div className="relative p-3 pt-0">
-                {/* Fade gradient overlay */}
-                <div className="absolute -top-12 left-0 right-0 h-12 bg-gradient-to-b from-transparent via-background/80 to-background pointer-events-none" />
-
+            <div className="border-t-[1.5px] border-foreground bg-card p-3 sm:px-4 sm:py-3.5">
                 <MessageForm
                     projectId={projectId}
                     isThinking={!!lastThinkingMessage}
