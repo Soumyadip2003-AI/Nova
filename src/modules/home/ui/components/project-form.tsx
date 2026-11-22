@@ -18,7 +18,7 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ModelSelector } from "@/components/model-selector";
+import { EffortSelector, ModelSelector, useEffort } from "@/components/model-selector";
 import { getDefaultModel } from "@/lib/models";
 
 const formSchema = z.object({
@@ -47,6 +47,7 @@ export const ProjectForm = () => {
 
     // Model selection state
     const [selectedModel, setSelectedModel] = useState<string>(() => getDefaultModel(false));
+    const [effort, setEffort] = useEffort();
 
     // Update default model when plan status changes
     useEffect(() => {
@@ -111,7 +112,7 @@ export const ProjectForm = () => {
         form.reset({ value: "" });
 
         // Optimistic mutation: start the mutation and get the promise
-        const mutationPromise = createProject.mutateAsync({ value: submittedValue, model: selectedModel });
+        const mutationPromise = createProject.mutateAsync({ value: submittedValue, model: selectedModel, effort });
 
         // Wait for the mutation to complete and get the project ID
         mutationPromise.then((data) => {
@@ -183,6 +184,14 @@ export const ProjectForm = () => {
                                 <ModelSelector
                                     value={selectedModel}
                                     onChange={setSelectedModel}
+                                    disabled={isSubmitting}
+                                />
+                            )}
+                            {isSignedIn && (
+                                <EffortSelector
+                                    model={selectedModel}
+                                    value={effort}
+                                    onChange={setEffort}
                                     disabled={isSubmitting}
                                 />
                             )}

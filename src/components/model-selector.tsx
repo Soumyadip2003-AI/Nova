@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AI_MODELS, type ModelId, type ModelInfo } from "@/lib/models";
+import { useEffect, useState } from "react";
+import { AI_MODELS, DEFAULT_EFFORT, EFFORTS, EFFORT_LABELS, supportsEffort, type Effort, type ModelId, type ModelInfo } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 
@@ -134,6 +135,58 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
             </div>
           </>
         )}
+      </SelectContent>
+    </Select>
+  );
+};
+
+const EFFORT_KEY = "nova-effort";
+
+/** The chosen effort, remembered in this browser so it carries from home to a project. */
+export function useEffort() {
+  const [effort, setEffort] = useState<Effort>(DEFAULT_EFFORT);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(EFFORT_KEY);
+      if (saved && (EFFORTS as readonly string[]).includes(saved)) setEffort(saved as Effort);
+    } catch {}
+  }, []);
+  const choose = (next: Effort) => {
+    setEffort(next);
+    try { localStorage.setItem(EFFORT_KEY, next); } catch {}
+  };
+  return [effort, choose] as const;
+}
+
+/** How hard the model thinks. Shown only for models that accept a choice. */
+export const EffortSelector = ({ model, value, onChange, disabled }: {
+  model: string;
+  value: Effort;
+  onChange: (value: Effort) => void;
+  disabled?: boolean;
+}) => {
+  if (!supportsEffort(model)) return null;
+  return (
+    <Select value={value} onValueChange={(next) => next && onChange(next as Effort)} disabled={disabled}>
+      <SelectTrigger
+        aria-label="Effort"
+        size="sm"
+        className="h-8 gap-1.5 rounded-full border-0 bg-muted px-3 text-[13px] font-medium text-foreground shadow-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <SelectValue>
+          <span className="flex items-center gap-1.5">
+            <BrainIcon className="size-3.5" aria-hidden />
+            {EFFORT_LABELS[value]} effort
+          </span>
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent align="start" className="rounded-2xl border border-border">
+        <SelectGroup>
+          <SelectLabel className={groupLabel}>Higher effort thinks longer and takes more time</SelectLabel>
+          {EFFORTS.map((e) => (
+            <SelectItem key={e} value={e} className="rounded-xl">{EFFORT_LABELS[e]}</SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );

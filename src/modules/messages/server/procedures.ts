@@ -7,6 +7,7 @@ import { generateChatResponse } from "@/lib/chat-agent";
 import { createThinkingMessage, deleteThinkingMessage } from "@/lib/thinking-helpers";
 import { TRPCError } from "@trpc/server";
 import { after } from "next/server";
+import { EFFORTS } from "@/lib/models";
 
 export const messagesRouter = createTRPCRouter({
     getMany:protectedProcedure
@@ -39,6 +40,7 @@ export const messagesRouter = createTRPCRouter({
                 .min(1, { message: "Value is required" })
                 .max(10000, { message: "Value is too long" }),
                 projectId: z.string().min(1, { message: "Project ID is required" }),
+                effort: z.enum(EFFORTS).optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -191,6 +193,7 @@ export const messagesRouter = createTRPCRouter({
                         projectId: input.projectId,
                         userId: ctx.auth.userId,
                         model: projectModel,
+                        effort: input.effort,
                     }
                 });
             } catch (error) {

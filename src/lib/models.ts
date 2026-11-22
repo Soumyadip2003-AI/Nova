@@ -100,6 +100,22 @@ export function isReasoningModel(modelId: string): boolean {
 // o1 and o1-mini were removed: OpenAI returns "deprecated" / "model_not_found" for them.
 export const REASONING_MODELS: ModelId[] = [];
 
+/** Reasoning effort levels OpenAI accepts for GPT-6.2 ("max" does not exist). */
+export const EFFORTS = ["low", "medium", "high", "xhigh"] as const;
+export type Effort = (typeof EFFORTS)[number];
+export const DEFAULT_EFFORT: Effort = "medium";
+export const EFFORT_LABELS: Record<Effort, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra high",
+};
+
+/** Only GPT-6.2 Sol and Astra let the user choose how hard they think. */
+export function supportsEffort(modelId: string): boolean {
+  return /^gpt-6\.2-/.test(modelId);
+}
+
 /** Only the GPT-4 family accepts a custom temperature; o1 and GPT-5+ reject it. */
 export function supportsTemperature(modelId: string): boolean {
   return modelId.startsWith("gpt-4");
@@ -115,11 +131,14 @@ export function supportsTemperature(modelId: string): boolean {
  * parallel_tool_calls: undefined removes the field agent-kit adds, since
  * reasoning models reject it.
  */
-export function agentParameters(modelId: string): Record<string, unknown> {
+export function agentParameters(modelId: string, effort?: string): Record<string, unknown> {
   if (supportsTemperature(modelId)) return { temperature: 0.1 };
-  // GPT-6.2 Sol and Astra reject "none" ("Supported values are: 'low',
-  // 'medium', 'high', and 'xhigh'"); low is the fastest they accept.
-  if (/^gpt-6\.2-/.test(modelId)) return { reasoning_effort: "low", parallel_tool_calls: undefined };
+  // GPT-6.2 Sol and Astra reject "none"; any other effort sends the call
+  // through /v1/responses (see src/lib/openai-responses.ts).
+  if (supportsEffort(modelId)) {
+    const chosen = (EFFORTS as readonly string[]).includes(effort ?? "") ? effort : DEFAULT_EFFORT;
+    return { reasoning_effort: chosen, parallel_tool_calls: undefined };
+  }
   if (/^gpt-(5|6)/.test(modelId)) return { reasoning_effort: "none", parallel_tool_calls: undefined };
   return { parallel_tool_calls: undefined };
 }
