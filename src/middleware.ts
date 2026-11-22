@@ -18,8 +18,17 @@ const isPublicRoute = createRouteMatcher([
   "/api/trpc(.*)",
 ])
 
+// Pages that need an account. Every other page is public, so a mistyped or
+// old link shows the 404 page instead of a sign-in screen. API routes stay
+// deny-by-default: anything under /api not listed as public needs a session.
+const isPrivatePage = createRouteMatcher([
+  "/projects(.*)",
+  "/payment-success(.*)",
+])
+
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
+  const isApi = req.nextUrl.pathname.startsWith("/api/") || req.nextUrl.pathname.startsWith("/trpc")
+  if ((isApi && !isPublicRoute(req)) || isPrivatePage(req)) {
     await auth.protect()
   }
 })
