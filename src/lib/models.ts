@@ -27,20 +27,6 @@ export const AI_MODELS = {
     tier: "pro",
     category: "standard",
   },
-  "o1-mini": {
-    id: "o1-mini",
-    name: "o1 Mini",
-    description: "Reasoning model for complex logic",
-    tier: "pro",
-    category: "reasoning",
-  },
-  "o1": {
-    id: "o1",
-    name: "o1",
-    description: "Advanced reasoning for complex problems",
-    tier: "pro",
-    category: "reasoning",
-  },
   "gpt-6.1-terra": {
     id: "gpt-6.1-terra",
     name: "GPT-6.1 Terra",
@@ -105,14 +91,14 @@ export function getModelInfo(modelId: string): ModelInfo | undefined {
  * Reasoning models have special capabilities and show their thinking process
  */
 export function isReasoningModel(modelId: string): boolean {
-  const model = AI_MODELS[modelId as ModelId];
-  return model?.category === "reasoning";
+  return (REASONING_MODELS as string[]).includes(modelId);
 }
 
 /**
  * Get the reasoning model IDs
  */
-export const REASONING_MODELS: ModelId[] = ["o1", "o1-mini"];
+// o1 and o1-mini were removed: OpenAI returns "deprecated" / "model_not_found" for them.
+export const REASONING_MODELS: ModelId[] = [];
 
 /** Only the GPT-4 family accepts a custom temperature; o1 and GPT-5+ reject it. */
 export function supportsTemperature(modelId: string): boolean {
@@ -131,6 +117,9 @@ export function supportsTemperature(modelId: string): boolean {
  */
 export function agentParameters(modelId: string): Record<string, unknown> {
   if (supportsTemperature(modelId)) return { temperature: 0.1 };
+  // GPT-6.2 Sol and Astra reject "none" ("Supported values are: 'low',
+  // 'medium', 'high', and 'xhigh'"); low is the fastest they accept.
+  if (/^gpt-6\.2-/.test(modelId)) return { reasoning_effort: "low", parallel_tool_calls: undefined };
   if (/^gpt-(5|6)/.test(modelId)) return { reasoning_effort: "none", parallel_tool_calls: undefined };
   return { parallel_tool_calls: undefined };
 }
