@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AI_MODELS, type ModelId, getAvailableModels } from "@/lib/models";
+import { AI_MODELS, type ModelId, type ModelInfo } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 
@@ -40,7 +40,25 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
   });
 
   const isPro = usage?.plan === "PRO";
-  const availableModels = getAvailableModels(isPro);
+  // Everyone sees every model; Free users see Pro models locked, so they know
+  // what Pro unlocks. The server enforces the same rule.
+  const availableModels: ModelInfo[] = Object.values(AI_MODELS);
+  const item = (model: ModelInfo) => {
+    const locked = !isPro && model.tier === "pro";
+    return (
+      <SelectItem key={model.id} value={model.id} disabled={locked}>
+        <span className="flex items-center gap-2">
+          <span>{model.name}</span>
+          {model.tier === "pro" && (
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <CrownIcon className="size-3 text-amber-500" aria-hidden />
+              {locked ? "Pro only" : "Pro"}
+            </span>
+          )}
+        </span>
+      </SelectItem>
+    );
+  };
 
   // Group models by category
   const standardModels = availableModels.filter(m => m.category === "standard");
@@ -78,16 +96,7 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
               {MODEL_ICONS.standard}
               Standard
             </SelectLabel>
-            {standardModels.map((model) => (
-              <SelectItem key={model.id} value={model.id}>
-                <span className="flex items-center gap-2">
-                  <span>{model.name}</span>
-                  {model.tier === "pro" && (
-                    <CrownIcon className="size-3 text-amber-500" />
-                  )}
-                </span>
-              </SelectItem>
-            ))}
+            {standardModels.map(item)}
           </SelectGroup>
         )}
 
@@ -99,14 +108,7 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
                 {MODEL_ICONS.reasoning}
                 Reasoning
               </SelectLabel>
-              {reasoningModels.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <span className="flex items-center gap-2">
-                    <span>{model.name}</span>
-                    <CrownIcon className="size-3 text-amber-500" />
-                  </span>
-                </SelectItem>
-              ))}
+              {reasoningModels.map(item)}
             </SelectGroup>
           </>
         )}
@@ -119,14 +121,7 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
                 {MODEL_ICONS.flagship}
                 Flagship
               </SelectLabel>
-              {flagshipModels.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <span className="flex items-center gap-2">
-                    <span>{model.name}</span>
-                    <CrownIcon className="size-3 text-amber-500" />
-                  </span>
-                </SelectItem>
-              ))}
+              {flagshipModels.map(item)}
             </SelectGroup>
           </>
         )}
@@ -137,7 +132,7 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
             <div className="px-2 py-1.5">
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <CrownIcon className="size-3 text-amber-500" />
-                Upgrade to Pro for more models
+                Upgrade to Pro to unlock the locked models
               </p>
             </div>
           </>

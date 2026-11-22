@@ -1,3 +1,4 @@
+import { supportsTemperature } from "@/lib/models";
 /**
  * Chat Agent for answering questions about projects
  * This is a lightweight agent that responds quickly without using Inngest/sandbox
@@ -175,8 +176,9 @@ export async function generateChatResponse(
   const response = await openai().chat.completions.create({
     model: chatModel,
     messages,
-    temperature: 0.7,
-    max_tokens: 1500,
+    // o1 and GPT-5+ reject temperature and max_tokens; max_completion_tokens works on all.
+    ...(supportsTemperature(chatModel) ? { temperature: 0.7 } : {}),
+    max_completion_tokens: 1500,
   });
 
   return response.choices[0]?.message?.content ?? "I'm sorry, I couldn't generate a response.";

@@ -533,3 +533,22 @@ export async function getOrphanedThinkingMessages(olderThanMinutes: number = 60)
         steps: isThinkingData(msg.thinking) ? msg.thinking.steps.length : 0
     }));
 }
+
+/**
+ * Appends one line describing a real action (a file written, a command run)
+ * to the current thinking step, so the user sees what the agent actually did.
+ */
+export async function appendThinkingLog(messageId: string, line: string) {
+    const message = await prisma.message.findUnique({ where: { id: messageId } });
+    if (!message || message.type !== "THINKING") return;
+
+    const thinking = parseThinkingData(message.thinking);
+    const current = thinking.steps.find(step => !step.completed);
+    if (!current) return;
+    current.content = current.content ? `${current.content}\n${line}` : line;
+
+    await prisma.message.update({
+        where: { id: messageId },
+        data: { thinking: toJsonValue(thinking) }
+    });
+}
