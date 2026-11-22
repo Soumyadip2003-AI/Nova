@@ -69,12 +69,44 @@ export async function verifySandbox(sandboxId: string, changed: string[]): Promi
   return { ok: problems.length === 0, problems };
 }
 
-export function repairPrompt(problems: string[]): string {
+/** Source files named in tsc problem lines, e.g. "app/layout.tsx(3,1): error ...". */
+export function problemFiles(problems: string[]): string[] {
+  const files = problems
+    .map((p) => p.match(/^([\w./@-]+\.(?:tsx?|jsx?))\(\d+,\d+\)/)?.[1])
+    .filter((f): f is string => Boolean(f));
+  return [...new Set(files)].slice(0, 5);
+}
+
+/** Current contents of the given files in the sandbox; unreadable files are skipped. */
+export async function readSandboxFiles(sandboxId: string, paths: string[]): Promise<Record<string, string>> {
+  const sandbox = await getSandbox(sandboxId);
+  const out: Record<string, string> = {};
+  for (const path of paths) {
+    try {
+      out[path] = (await sandbox.files.read(path)).slice(0, 12_000);
+    } catch {
+      // A file named in an error may not exist; the problem text still guides the fix.
+    }
+  }
+  return out;
+}
+
+/**
+ * The repair instruction. It carries the current text of each broken file:
+ * without it, models replied "fixed" from memory of their earlier answer
+ * without editing anything, and the check failed again.
+ */
+export function repairPrompt(problems: string[], files: Record<string, string> = {}): string {
   const report = problems.join("\n").slice(0, MAX_REPORT);
-  return `Your code was checked before being shown to the user and has problems. Fix all of them by editing the files with createOrUpdateFiles. Do not start or restart the app; it reloads by itself.
+  const shown = Object.entries(files)
+    .map(([path, text]) => `--- ${path} (current contents) ---\n${text}`)
+    .join("\n\n");
+  return `Your code was checked before being shown to the user and it is broken. You must fix it now by calling createOrUpdateFiles with the corrected, complete contents of every file listed. Replying without calling createOrUpdateFiles does not fix anything. Do not start or restart the app; it reloads by itself.
 
 Problems found:
 ${report}
+${shown ? `\nThe files as they are right now:\n\n${shown}\n` : ""}
+Common causes: import paths must use plain quotes ("next" or 'next'), never backticks; every JSX tag must be closed; only import components that exist.
 
 When everything is fixed, end with the same <task_summary> format as before.`;
 }

@@ -4,7 +4,7 @@ import { NonRetriableError } from "inngest";
 import { SITE } from "@/lib/site";
 import {  openai, createAgent, createTool, createNetwork, createState, type Tool } from "@inngest/agent-kit";
 import { Sandbox} from "@e2b/code-interpreter"
-import { verifySandbox, repairPrompt } from "./verify";
+import { verifySandbox, repairPrompt, problemFiles, readSandboxFiles } from "./verify";
 import { getSandbox, lastAssistantTextMessageContent } from "./utils";
 /** A command as one readable line for the thinking log. */
 const shortCommand = (cmd: string) => {
@@ -376,7 +376,11 @@ export const codeAgentFunction = inngest.createFunction(
       // the running app's home page) and hand any problems back to the agent,
       // up to MAX_REPAIRS times, before the user ever sees the result.
       const MAX_REPAIRS = 2;
-      for (let attempt = 1; attempt <= MAX_REPAIRS; attempt++) {
+      // Problems still present after the last repair; non-empty means the
+      // build could not be fixed, and the user is told and refunded.
+      let unfixed: string[] = [];
+      // One more check than repairs, so the last repair is verified too.
+      for (let attempt = 1; attempt <= MAX_REPAIRS + 1; attempt++) {
         const changed = Object.keys(result.state.data.files || {});
         if (!changed.length) break;
         const check = await step.run(`verify-${attempt}`, () => verifySandbox(sandboxId, changed));
@@ -389,12 +393,23 @@ export const codeAgentFunction = inngest.createFunction(
           break;
         }
         console.log(`Self-healing: ${check.problems.length} problem(s) on check ${attempt}`, check.problems);
+        if (attempt > MAX_REPAIRS) {
+          unfixed = check.problems;
+          await step.run("could-not-fix", () =>
+            addThinkingStep(thinkingMessage.id, "Could not fix everything",
+              [`${check.problems.length} problem${check.problems.length > 1 ? "s" : ""} left after ${MAX_REPAIRS} repairs:`,
+                ...check.problems.slice(0, 5).map((p) => p.slice(0, 200))].join("\n")));
+          await step.run("could-not-fix-done", () => completeCurrentThinkingStep(thinkingMessage.id));
+          break;
+        }
         await step.run(`repairing-${attempt}`, () =>
           addThinkingStep(thinkingMessage.id, "Fixing problems",
             [`Found ${check.problems.length} problem${check.problems.length > 1 ? "s" : ""}, fixing (attempt ${attempt} of ${MAX_REPAIRS}):`,
               ...check.problems.slice(0, 5).map((p) => p.slice(0, 200))].join("\n")));
+        const brokenFiles = await step.run(`read-broken-files-${attempt}`, () =>
+          readSandboxFiles(sandboxId, problemFiles(check.problems)));
         result.state.data.summary = ""; // lets the router hand control back to the agent
-        result = await network.run(repairPrompt(check.problems), { state: result.state });
+        result = await network.run(repairPrompt(check.problems, brokenFiles), { state: result.state });
         await step.run(`repaired-${attempt}`, () => completeCurrentThinkingStep(thinkingMessage.id));
       }
 
@@ -523,6 +538,16 @@ export const codeAgentFunction = inngest.createFunction(
           console.log("Creating SUCCESS message with", Object.keys(files).length, "files");
           console.log("Files to save:", Object.keys(files));
 
+          // Never claim success over problems the check still sees.
+          if (unfixed.length) {
+            userFriendlySummary = [
+              `I built this, but ${unfixed.length === 1 ? "one problem is" : `${unfixed.length} problems are`} still there that I could not fix after ${MAX_REPAIRS} tries:`,
+              ...unfixed.slice(0, 5).map((p) => `- ${p.slice(0, 200)}`),
+              "",
+              "Your credit has been returned. Ask me to fix it, or try a different model.",
+            ].join("\n");
+          }
+
           const message = await prisma.message.create({
             data: {
               projectId: event.data.projectId,
@@ -548,6 +573,14 @@ export const codeAgentFunction = inngest.createFunction(
           throw error;
         }
       })
+
+      // A build the checks could not get working is not charged (see the Terms).
+      if (unfixed.length) {
+        await step.run("refund-unfixed", async () => {
+          const { refundCreditsForUser } = await import("@/lib/usage");
+          await refundCreditsForUser(event.data.userId);
+        });
+      }
 
       // summary stop.
 
