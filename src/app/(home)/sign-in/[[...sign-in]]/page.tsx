@@ -30,7 +30,7 @@ const Page = () => {
                             colorMutedForeground: "var(--muted-foreground)",
                             colorInput: "var(--card)",
                             colorInputForeground: "var(--foreground)",
-                            colorBorder: "var(--border)",
+                            colorBorder: "var(--input)",
                             colorRing: "var(--ring)",
                             colorDanger: "var(--destructive)",
                             colorSuccess: "var(--success)",
@@ -42,6 +42,9 @@ const Page = () => {
                             headerTitle: "text-2xl! font-bold! tracking-[-0.03em]!",
                             socialButtonsBlockButton: "rounded-full! border! border-border!",
                             formButtonPrimary: "rounded-full! shadow-none!",
+                            // Clerk labels optional fields "Optional"; the form reads cleaner without it.
+                            formFieldHintText: "hidden!",
+                            formFieldInput: "border! border-input! bg-card! shadow-none! focus:border-foreground! focus:ring-2! focus:ring-ring/25!",
                         },
                     }}
                 />
