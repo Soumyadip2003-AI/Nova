@@ -12,6 +12,8 @@ const isPublicRoute = createRouteMatcher([
   "/sitemap.xml",
   "/api/inngest(.*)",
   "/api/webhooks(.*)",
+  // Model pass-through: authenticated by the caller's own OpenAI key.
+  "/api/ai/openai(.*)",
   // Every tRPC procedure checks auth itself (protectedProcedure) and answers a
   // signed-out call with a JSON 401. Protecting it here too turned those calls
   // into an HTML 404 page, which the client cannot read.
