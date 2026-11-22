@@ -90,7 +90,7 @@ export const ProjectList = () => {
                                 className="grid size-10 shrink-0 place-items-center rounded-xl text-[15px] font-bold"
                                 style={tileFor(project.name || project.id)}
                             >
-                                {(project.messages[0]?.content || project.name || "N").trim().charAt(0).toUpperCase()}
+                                {(project.name || project.messages[0]?.content || "N").trim().charAt(0).toUpperCase()}
                             </span>
                             <Link
                                 href={`/projects/${project.id}`}
@@ -100,7 +100,7 @@ export const ProjectList = () => {
                                     "focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring",
                                 )}
                             >
-                                {project.messages[0]?.content || project.name}
+                                {project.name || project.messages[0]?.content}
                             </Link>
                             <Button
                                 type="button"
