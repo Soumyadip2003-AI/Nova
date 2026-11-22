@@ -2,7 +2,9 @@
 
 Describe an app in plain words. Nova's AI agent writes the code, runs it in a cloud sandbox, checks it, fixes what is broken and shows you a live preview.
 
-Live: https://nova-five-black.vercel.app
+**Live:** https://nova-five-black.vercel.app
+
+![Nova demo: type an idea, Nova builds it, checks it and shows the live app](docs/demo.gif)
 
 ## What it does
 
@@ -13,6 +15,58 @@ Live: https://nova-five-black.vercel.app
 - **Chat.** Ask questions about your app without spending a build credit.
 - **Models.** Free: GPT-6 Luna, GPT-4o Mini. Pro adds GPT-4o, GPT-4 Turbo, GPT-6.1 Terra, GPT-5.1, GPT-6.2 Sol and GPT-6.2 Astra. Sol and Astra have an effort setting (Low to Extra high).
 - **Credits.** Free: 5 builds a month. Pro: 100 builds a month. A build that fails is refunded.
+
+## How a build works
+
+```mermaid
+flowchart LR
+    U([You type an idea]) --> C{Credit left?}
+    C -- no --> P[Upgrade prompt]
+    C -- yes --> E[Inngest event]
+    E --> A[AI agent]
+    A <-- "terminal, readFiles,<br/>createOrUpdateFiles" --> S[(E2B sandbox<br/>Next.js app)]
+    A --> V{Self-check:<br/>tsc + page load}
+    V -- problems --> R[Repair round<br/>up to 2] --> A
+    V -- passes --> L[Save version<br/>and live preview]
+    R -. still broken .-> F[Show what is left<br/>and refund the credit]
+```
+
+Every step the agent takes is written to the thinking log, so you watch the real work, not a spinner.
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Browser
+        UI[Next.js UI<br/>chat, thinking log,<br/>preview, code]
+    end
+    subgraph Vercel
+        API[tRPC API]
+        PX[OpenAI proxy<br/>/api/ai/openai]
+        IN[Inngest functions]
+    end
+    UI -- tRPC --> API
+    API -- auth, plans --> CL[Clerk]
+    API -- projects, messages,<br/>credits --> DB[(Neon Postgres<br/>via Prisma)]
+    API -- build event --> IN
+    IN -- agent calls --> PX --> OA[OpenAI]
+    IN -- run code --> SB[(E2B sandbox)]
+    IN -- thinking steps,<br/>result --> DB
+    UI -- live preview iframe --> SB
+    CL -- user webhooks --> API
+```
+
+### Model routing
+
+GPT-6.2 Sol and Astra only accept tools together with a reasoning effort on OpenAI's Responses API. The agent library speaks Chat Completions, so Nova's proxy translates those calls both ways. Other models pass straight through.
+
+```mermaid
+flowchart LR
+    AG[Agent<br/>Chat Completions] --> PX{Effort set?}
+    PX -- "no (GPT-4o, GPT-5.1, Luna...)" --> CC["/v1/chat/completions"]
+    PX -- "yes (Sol, Astra)" --> TR[Translate request] --> RS["/v1/responses"] --> TB[Translate reply back] --> AG
+    CC --> AG
+```
 
 ## Stack
 

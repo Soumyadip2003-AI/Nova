@@ -16,6 +16,7 @@ import { Usage } from "./usage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "next/navigation";
 import { EffortSelector, ModelSelector, useEffort } from "@/components/model-selector";
+import { supportsEffort } from "@/lib/models";
 
 interface Props {
     projectId: string;
@@ -210,7 +211,8 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                             onChange={setEffort}
                             disabled={isThinking}
                         />
-                        <p className={cn("hidden items-center gap-1.5 font-mono text-xs text-muted-foreground", !isMobile && "lg:flex")}>
+                        {/* No room for the hint next to the effort picker; it wrapped under the Send button. */}
+                        <p className={cn("hidden items-center gap-1.5 whitespace-nowrap font-mono text-xs text-muted-foreground", !isMobile && !supportsEffort(project.model || "") && "lg:flex")}>
                             <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl or Cmd + Enter</kbd>
                             to {isThinking ? "stop" : "send"}
                         </p>
