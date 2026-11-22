@@ -145,7 +145,7 @@ export const ProjectView = ({ projectId }: Props) => {
                             className="m-0 min-h-0 flex-1 overflow-hidden rounded-2xl bg-card shadow-float data-[state=inactive]:hidden"
                         >
                             {activeFragment ? (
-                                <FragmentWeb data={activeFragment} />
+                                <FragmentWeb key={activeFragment.id} data={activeFragment} />
                             ) : (
                                 <EmptyState
                                     icon={EyeIcon}

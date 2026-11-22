@@ -181,7 +181,7 @@ export const codeAgentFunction = inngest.createFunction(
         }
         const sandbox = isPro
           ? await Sandbox.create(templateId, { timeoutMs: 1200000 })
-          : await Sandbox.create(templateId);
+          : await Sandbox.create(templateId, { timeoutMs: 15 * 60 * 1000 });
 
         // Load existing files from previous project state
         const existingProject = await prisma.message.findFirst({

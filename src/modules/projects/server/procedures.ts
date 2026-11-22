@@ -150,6 +150,38 @@ export const projectsRouter = createTRPCRouter({
 
             return { success: true };
         }),
+    // Previews run in sandboxes that stop after a few minutes. These let the
+    // workspace notice a stopped preview and start it again from the saved
+    // code, without a new build and without using a credit.
+    previewAlive: protectedProcedure
+        .input(z.object({ fragmentId: z.string().min(1) }))
+        .query(async ({ input, ctx }) => {
+            const fragment = await prisma.fragment.findFirst({
+                where: { id: input.fragmentId, message: { project: { userId: ctx.auth.userId } } },
+                select: { sandboxUrl: true },
+            });
+            if (!fragment) throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
+            const { isPreviewAlive } = await import("@/lib/preview");
+            return { alive: await isPreviewAlive(fragment.sandboxUrl) };
+        }),
+    restartPreview: protectedProcedure
+        .input(z.object({ fragmentId: z.string().min(1) }))
+        .mutation(async ({ input, ctx }) => {
+            const fragment = await prisma.fragment.findFirst({
+                where: { id: input.fragmentId, message: { project: { userId: ctx.auth.userId } } },
+            });
+            if (!fragment) throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
+
+            const { isPreviewAlive, startPreview } = await import("@/lib/preview");
+            // Already running (or restarted a moment ago): reuse it instead of
+            // starting another paid sandbox.
+            if (await isPreviewAlive(fragment.sandboxUrl)) return fragment;
+
+            const { getUsageStatus } = await import("@/lib/usage");
+            const isPro = (await getUsageStatus()).plan === "PRO";
+            const sandboxUrl = await startPreview(fragment.files as Record<string, string>, isPro);
+            return prisma.fragment.update({ where: { id: fragment.id }, data: { sandboxUrl } });
+        }),
     updateModel: protectedProcedure
         .input(
             z.object({
