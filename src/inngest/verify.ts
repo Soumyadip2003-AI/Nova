@@ -33,8 +33,24 @@ export function typeErrorsFor(tscOutput: string, changed: string[]): string[] {
 export function pageProblem(status: number, html: string): string | null {
   if (status === 0) return "The app's home page did not respond.";
   const m = html.match(ERROR_PAGE);
-  if (status >= 500) return `The app's home page returns HTTP ${status}${m ? ` (${m[0]})` : ""}.`;
-  return m ? `The app's home page shows an error: ${m[0]}.` : null;
+  // The error page names the file, line and cause; pass that on so a repair
+  // knows where to look instead of only "HTTP 500".
+  const detail = m && m.index !== undefined ? errorDetail(html, m.index) : "";
+  if (status >= 500) return `The app's home page returns HTTP ${status}${detail ? `: ${detail}` : m ? ` (${m[0]})` : ""}.`;
+  return m ? `The app's home page shows an error: ${detail || m[0]}.` : null;
+}
+
+/** Readable text around an error found in the page's HTML. */
+function errorDetail(html: string, index: number): string {
+  return html
+    .slice(index, index + 1200)
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\\n/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 400);
 }
 
 export async function verifySandbox(sandboxId: string, changed: string[]): Promise<VerifyResult> {
