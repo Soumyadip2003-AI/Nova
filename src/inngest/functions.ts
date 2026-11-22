@@ -380,8 +380,19 @@ export const codeAgentFunction = inngest.createFunction(
       // build could not be fixed, and the user is told and refunded.
       let unfixed: string[] = [];
       // One more check than repairs, so the last repair is verified too.
+      // Files Nova wrote in earlier versions of this project are its own code
+      // too: a broken file carried over from the last version must be checked
+      // and fixed, not filtered out because this run did not touch it.
+      const earlierFiles = await step.run("earlier-files", async () => {
+        const last = await prisma.fragment.findFirst({
+          where: { message: { projectId: event.data.projectId } },
+          orderBy: { createdAt: "desc" },
+          select: { files: true },
+        });
+        return Object.keys((last?.files as Record<string, string> | undefined) ?? {});
+      });
       for (let attempt = 1; attempt <= MAX_REPAIRS + 1; attempt++) {
-        const changed = Object.keys(result.state.data.files || {});
+        const changed = [...new Set([...Object.keys(result.state.data.files || {}), ...earlierFiles])];
         if (!changed.length) break;
         const check = await step.run(`verify-${attempt}`, () => verifySandbox(sandboxId, changed));
         if (check.ok) {
