@@ -4,6 +4,12 @@ import {  openai, createAgent, createTool, createNetwork, createState, type Tool
 import { Sandbox} from "@e2b/code-interpreter"
 import { verifySandbox, repairPrompt } from "./verify";
 import { getSandbox, lastAssistantTextMessageContent } from "./utils";
+/** A command as one readable line for the thinking log. */
+const shortCommand = (cmd: string) => {
+  const line = cmd.trim().split("\n")[0];
+  return `\`${line.length > 80 ? `${line.slice(0, 80)}…` : line}\``;
+};
+
 import { PROMPT, RESPONSE_PROMPT, FRAGMENT_TITLE_PROMPT } from '@/prompt';
 import { prisma } from '@/lib/db';
 import {
@@ -13,7 +19,7 @@ import {
   deleteThinkingMessage,
   cleanupThinkingMessageWithError,
   ThinkingErrorType,
-  addReasoningStep,
+  appendThinkingLog,
   setThinkingModelMetadata
 } from '@/lib/thinking-helpers';
 
@@ -106,7 +112,7 @@ export const codeAgentFunction = inngest.createFunction(
     const selectedModel = event.data.model || "gpt-4o-mini";
 
     // Check if this is a reasoning model (o1 family)
-    const { isReasoningModel } = await import("@/lib/models");
+    const { isReasoningModel, supportsTemperature } = await import("@/lib/models");
     const useReasoningModel = isReasoningModel(selectedModel);
 
     // Create thinking message to track progress
@@ -198,18 +204,7 @@ export const codeAgentFunction = inngest.createFunction(
       }
     });
 
-    await step.run("start-analysis", async () => {
-      await addThinkingStep(
-        thinkingMessage.id,
-        "Planning implementation",
-        `Analyzing how to best implement: "${event.data.value}"`
-      );
-      await completeCurrentThinkingStep(thinkingMessage.id);
-    });
 
-    // Track iteration count for progress updates
-    let iterationCount = 0;
-    const maxIterations = 30;
 
     const codeAgent = createAgent<AgentState>({
       name: "code-agent",
@@ -217,9 +212,8 @@ export const codeAgentFunction = inngest.createFunction(
       description: "An expert coding agent",
       model: openai({
         model: selectedModel,
-        defaultParameters:{
-          temperature: 0.1,
-        }
+        // Reasoning-era models (o1, GPT-5 and later) reject a custom temperature.
+        defaultParameters: supportsTemperature(selectedModel) ? { temperature: 0.1 } : {},
       }),
       tools:[
         createTool({
@@ -242,9 +236,12 @@ export const codeAgentFunction = inngest.createFunction(
                  }
                 });
 
+                await appendThinkingLog(thinkingMessage.id, `Ran ${shortCommand(command)}`);
                 return result.stdout;
 
               }catch(e){
+                const why = (buffers.stderr || String(e)).trim().split("\n")[0].slice(0, 160);
+                await appendThinkingLog(thinkingMessage.id, `Ran ${shortCommand(command)}: failed (${why})`);
                 console.error(
                   `Command failed: ${e} \nstdout: ${buffers.stdout}\nstderror: ${buffers.stderr}`,
 
@@ -278,6 +275,7 @@ export const codeAgentFunction = inngest.createFunction(
                 await sandbox.files.write(file.path, file.content);
                 updatedFiles[file.path]= file.content;
               }
+              await appendThinkingLog(thinkingMessage.id, `Wrote ${files.map((f) => f.path).join(", ")}`);
               return updatedFiles;
             });
             // Always update state with the new files object (with fallback for safety)
@@ -301,6 +299,7 @@ export const codeAgentFunction = inngest.createFunction(
                   const content=await sandbox .files.read(file);
                   contents.push({path: file, content});
                 }
+                await appendThinkingLog(thinkingMessage.id, `Read ${files.join(", ")}`);
                 
                 
                 return JSON.stringify(contents);
@@ -313,31 +312,13 @@ export const codeAgentFunction = inngest.createFunction(
       ],
       lifecycle:{
         onResponse: async ({result, network}) => {
-          iterationCount++;
           const lastAssistantMessageText = lastAssistantTextMessageContent(result);
 
-          // Update thinking message with progress
-          try {
-            const { updateCurrentThinkingStepContent } = await import('@/lib/thinking-helpers');
-            const progress = Math.min(Math.round((iterationCount / maxIterations) * 100), 95);
-
-            if (useReasoningModel) {
-              // For reasoning models, show reasoning progress
-              await updateCurrentThinkingStepContent(
-                thinkingMessage.id,
-                `Reasoning through the problem... (${progress}% - iteration ${iterationCount})`
-              );
-            } else {
-              // For standard models, show what's happening
-              const filesCreated = network ? Object.keys(network.state.data.files || {}).length : 0;
-              await updateCurrentThinkingStepContent(
-                thinkingMessage.id,
-                `Writing code... ${filesCreated > 0 ? `Created ${filesCreated} file${filesCreated > 1 ? 's' : ''}` : 'Analyzing requirements'} (${progress}%)`
-              );
-            }
-          } catch (e) {
-            // Don't fail if update fails
-            console.log("Could not update thinking step:", e);
+          // Show what the model said it is doing, in its own words.
+          const said = (lastAssistantMessageText || "").replace(/<task_summary>[\s\S]*$/, "").trim();
+          const thought = said.split("\n").find((l) => l.trim())?.trim().slice(0, 200);
+          if (thought) {
+            await step.run("think", () => appendThinkingLog(thinkingMessage.id, thought)).catch(() => {});
           }
 
           if (lastAssistantMessageText && network) {
@@ -376,20 +357,9 @@ export const codeAgentFunction = inngest.createFunction(
         const modelInfo = getModelInfo(selectedModel);
         const modelName = modelInfo?.name || selectedModel;
 
-        if (useReasoningModel) {
-          // For o1 models, show that the model is reasoning through the problem
-          await addThinkingStep(
-            thinkingMessage.id,
-            "Reasoning",
-            `${modelName} is analyzing and reasoning through your request. This model thinks step-by-step before generating code...`
-          );
-        } else {
-          await addThinkingStep(
-            thinkingMessage.id,
-            "Writing code",
-            `Generating clean, production-ready code with ${modelName}...`
-          );
-        }
+        // Starts empty: the real actions (files written, commands run, the
+        // model's own words) are appended as they happen.
+        await addThinkingStep(thinkingMessage.id, `Working with ${modelName}`);
       });
 
       // Run the agent network - this is the long-running operation
@@ -415,7 +385,8 @@ export const codeAgentFunction = inngest.createFunction(
         console.log(`Self-healing: ${check.problems.length} problem(s) on check ${attempt}`, check.problems);
         await step.run(`repairing-${attempt}`, () =>
           addThinkingStep(thinkingMessage.id, "Fixing problems",
-            `Found ${check.problems.length} problem${check.problems.length > 1 ? "s" : ""} in the generated code. Fixing ${check.problems.length > 1 ? "them" : "it"} (attempt ${attempt} of ${MAX_REPAIRS}).`));
+            [`Found ${check.problems.length} problem${check.problems.length > 1 ? "s" : ""}, fixing (attempt ${attempt} of ${MAX_REPAIRS}):`,
+              ...check.problems.slice(0, 5).map((p) => p.slice(0, 200))].join("\n")));
         result.state.data.summary = ""; // lets the router hand control back to the agent
         result = await network.run(repairPrompt(check.problems), { state: result.state });
         await step.run(`repaired-${attempt}`, () => completeCurrentThinkingStep(thinkingMessage.id));
@@ -425,20 +396,6 @@ export const codeAgentFunction = inngest.createFunction(
       await step.run("complete-generation", async () => {
         await completeCurrentThinkingStep(thinkingMessage.id);
 
-        // For reasoning models, add a step showing the reasoning was completed
-        if (useReasoningModel) {
-          // Try to extract reasoning summary from the task_summary if available
-          const taskSummary = result.state.data.summary || '';
-          const reasoningSummary = taskSummary
-            ? `The model analyzed your request and determined the best approach. Key decisions made during reasoning are reflected in the generated code.`
-            : `Reasoning complete. The model has thought through the problem and generated a solution.`;
-
-          await addReasoningStep(
-            thinkingMessage.id,
-            "Reasoning Complete",
-            reasoningSummary
-          );
-        }
       });
 
       // Log the result for debugging
@@ -472,7 +429,7 @@ export const codeAgentFunction = inngest.createFunction(
         await addThinkingStep(
           thinkingMessage.id,
           "Preparing preview",
-          "Setting up live preview environment and running the application..."
+          "Starting your app"
         );
 
         const sandbox = await getSandbox(sandboxId);

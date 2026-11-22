@@ -1,4 +1,11 @@
 export const AI_MODELS = {
+  "gpt-6-luna": {
+    id: "gpt-6-luna",
+    name: "GPT-6 Luna",
+    description: "Newest small model, fast and low cost",
+    tier: "free",
+    category: "standard",
+  },
   "gpt-4o-mini": {
     id: "gpt-4o-mini",
     name: "GPT-4o Mini",
@@ -34,6 +41,27 @@ export const AI_MODELS = {
     tier: "pro",
     category: "reasoning",
   },
+  "gpt-6.1-terra": {
+    id: "gpt-6.1-terra",
+    name: "GPT-6.1 Terra",
+    description: "Balanced speed and quality",
+    tier: "pro",
+    category: "standard",
+  },
+  "gpt-6.2-sol": {
+    id: "gpt-6.2-sol",
+    name: "GPT-6.2 Sol",
+    description: "Strong at multistep tasks",
+    tier: "pro",
+    category: "flagship",
+  },
+  "gpt-6.2-astra": {
+    id: "gpt-6.2-astra",
+    name: "GPT-6.2 Astra",
+    description: "Most capable, for complex apps",
+    tier: "pro",
+    category: "flagship",
+  },
   "gpt-5.1": {
     id: "gpt-5.1",
     name: "GPT-5.1",
@@ -49,7 +77,7 @@ export type ModelInfo = (typeof AI_MODELS)[ModelId];
 export const DEFAULT_FREE_MODEL: ModelId = "gpt-4o-mini";
 export const DEFAULT_PRO_MODEL: ModelId = "gpt-5.1";
 
-export const FREE_TIER_MODELS: ModelId[] = ["gpt-4o-mini"];
+export const FREE_TIER_MODELS: ModelId[] = ["gpt-6-luna", "gpt-4o-mini"];
 export const PRO_TIER_MODELS: ModelId[] = Object.keys(AI_MODELS) as ModelId[];
 
 export function isModelAvailable(modelId: string, isPro: boolean): boolean {
@@ -85,3 +113,8 @@ export function isReasoningModel(modelId: string): boolean {
  * Get the reasoning model IDs
  */
 export const REASONING_MODELS: ModelId[] = ["o1", "o1-mini"];
+
+/** Only the GPT-4 family accepts a custom temperature; o1 and GPT-5+ reject it. */
+export function supportsTemperature(modelId: string): boolean {
+  return modelId.startsWith("gpt-4");
+}

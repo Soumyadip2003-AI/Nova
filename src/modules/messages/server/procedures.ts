@@ -58,7 +58,13 @@ export const messagesRouter = createTRPCRouter({
             }
 
             // Get the project's selected model
-            const projectModel = existingproject.model || "gpt-4o-mini";
+            // A project keeps its model, but a user who left Pro must not keep
+            // using Pro models through an old project.
+            const { getUsageStatus } = await import("@/lib/usage");
+            const { isModelAvailable, getDefaultModel } = await import("@/lib/models");
+            const isPro = (await getUsageStatus()).plan === "PRO";
+            const savedModel = existingproject.model || "gpt-4o-mini";
+            const projectModel = isModelAvailable(savedModel, isPro) ? savedModel : getDefaultModel(isPro);
 
             // Check if this is a question or a code generation request
             const isQuestion = isDefinitelyQuestion(input.value);
@@ -148,7 +154,6 @@ export const messagesRouter = createTRPCRouter({
             }
 
             // Check if user has credits (but don't consume yet - will consume after successful generation)
-            const { getUsageStatus } = await import("@/lib/usage");
             const usageStatus = await getUsageStatus();
 
             if (usageStatus.remainingPoints < 1) {
