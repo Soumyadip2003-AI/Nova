@@ -4,6 +4,6 @@ export const SITE = {
     url: "https://nova-five-black.vercel.app",
     operator: "Soumyadip Sarkar",
     country: "India",
-    email: "soumyadipsarkar459@gmail.com",
+    email: "soumyadip.0202@gmail.com",
     legalUpdated: "22 November 2026",
 } as const;
