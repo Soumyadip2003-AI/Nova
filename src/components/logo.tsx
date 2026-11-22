@@ -23,11 +23,11 @@ const Mark = ({ size, pulse }: { size: number; pulse?: boolean }) => (
         aria-hidden="true"
         className={cn("shrink-0", pulse && "animate-pulse")}
     >
-        <rect x="2" y="2" width="24" height="24" rx="7" fill="#13213a" />
+        <rect x="2" y="2" width="24" height="24" rx="7" className="fill-[#13213a] dark:fill-[#f5e663]" />
         <path
             d="M9 19V9l10 10V9"
             fill="none"
-            stroke="#f5e663"
+            className="stroke-[#f5e663] dark:stroke-[#13213a]"
             strokeWidth="2.6"
             strokeLinecap="round"
             strokeLinejoin="round"

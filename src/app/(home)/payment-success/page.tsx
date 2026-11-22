@@ -78,7 +78,7 @@ export default function PaymentSuccessPage() {
                             Pro is on
                         </p>
                         <h1 className="mt-3 font-display text-3xl font-bold tracking-[-0.02em]">
-                            Welcome to <span className="mark-highlight dark:rounded-sm dark:bg-accent! dark:px-1 dark:text-accent-foreground!">Pro</span>
+                            Welcome to <span className="mark-highlight">Pro</span>
                         </h1>
                         <p className="mt-2 text-muted-foreground">
                             You now have <span className="font-mono text-foreground">100</span> credits every month.

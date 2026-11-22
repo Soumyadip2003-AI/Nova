@@ -216,8 +216,12 @@
 
 /* Highlighter mark behind a word. */
 .mark-highlight {
-  background: linear-gradient(transparent 55%, var(--highlight) 55%, var(--highlight) 92%, transparent 92%);
-  color: inherit;
+  /* Ink on yellow in both themes, so the marked words stay readable. */
+  background: linear-gradient(transparent 14%, var(--highlight) 14%, var(--highlight) 96%, transparent 96%);
+  color: #13213a;
+  padding: 0 0.08em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 @media (prefers-reduced-motion: reduce) {

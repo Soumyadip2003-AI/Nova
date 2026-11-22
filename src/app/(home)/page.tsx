@@ -48,7 +48,7 @@ const Page = () => {
             className="font-display text-[2.5rem] font-bold leading-[1.02] tracking-[-0.02em] text-balance sm:text-6xl lg:text-[4.25rem]"
           >
             Describe your app. Nova builds it,{" "}
-            <span className="mark-highlight dark:rounded-sm dark:bg-accent dark:px-1 dark:text-accent-foreground">checks it</span> and fixes it.
+            <span className="mark-highlight">checks it</span> and fixes it.
           </h1>
           <p className="mt-5 max-w-[520px] text-lg leading-relaxed text-muted-foreground">
             No code to write and nothing to debug. Tell Nova what you want in
