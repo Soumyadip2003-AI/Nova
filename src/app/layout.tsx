@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { SITE } from "@/lib/site";
 import { TRPCReactProvider } from "@/trpc/client";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
@@ -25,7 +26,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nova: build apps with AI",
+  metadataBase: new URL(SITE.url),
+  title: { default: "Nova: build apps with AI", template: "%s | Nova" },
+  openGraph: { siteName: "Nova", type: "website", url: SITE.url },
   description: "Describe an app and Nova's AI agent writes, runs and fixes the code for you, with self-healing error recovery.",
 };
 

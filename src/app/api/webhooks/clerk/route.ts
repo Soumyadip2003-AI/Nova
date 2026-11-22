@@ -50,6 +50,20 @@ export async function POST(request: NextRequest) {
 
   const { type, data } = event;
 
+  // Account deleted in Clerk: erase that user's projects (messages and
+  // versions cascade) and credit record, as the privacy policy promises.
+  if (type === "user.deleted") {
+    const deletedId = (data as { id?: string }).id;
+    if (deletedId) {
+      const { prisma } = await import("@/lib/db");
+      await prisma.$transaction([
+        prisma.project.deleteMany({ where: { userId: deletedId } }),
+        prisma.usage.deleteMany({ where: { key: deletedId } }),
+      ]);
+    }
+    return NextResponse.json({ received: true });
+  }
+
   if (!type.startsWith("subscription")) {
     return NextResponse.json({ received: true });
   }

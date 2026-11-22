@@ -21,7 +21,7 @@ export const Navbar = () => {
                 <Link href="/#examples" className={`${linkClass} hidden md:inline`}>
                     Examples
                 </Link>
-                <Link href="/#how-it-works" className={`${linkClass} hidden md:inline`}>
+                <Link href="/how-it-works" className={`${linkClass} hidden md:inline`}>
                     How it works
                 </Link>
                 <Link href="/pricing" className={linkClass}>

@@ -3,6 +3,7 @@
 import { SignUp } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { useCurrentTheme } from "@/hooks/use-current-theme";
+import Link from "next/link";
 
 const Page = () => {
     const currentTheme = useCurrentTheme();
@@ -17,6 +18,11 @@ const Page = () => {
                     Create a free account and build your first app in minutes.
                 </p>
                 <p className="mt-8 text-sm font-medium text-white/90">5 free credits every month. No card needed.</p>
+                <p className="mt-3 max-w-[440px] text-sm font-medium text-white/90">
+                    By creating an account you agree to the{" "}
+                    <Link href="/terms" className="underline underline-offset-4 hover:text-white">Terms of Service</Link> and{" "}
+                    <Link href="/privacy" className="underline underline-offset-4 hover:text-white">Privacy Policy</Link>.
+                </p>
             </section>
             <section aria-label="Create an account" className="flex justify-center lg:justify-end">
                 <SignUp

@@ -25,7 +25,7 @@ const HOW = [
 
 const Page = () => {
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-5 pb-16 sm:px-8">
+    <div className="mx-auto w-full max-w-[1180px] px-5 sm:px-8">
       {/* Signed in: a focused start page, the prompt box first, then projects. */}
       <SignedIn>
         <section aria-labelledby="start-title" className="mx-auto max-w-[760px] pt-8 sm:pt-16">
@@ -162,17 +162,6 @@ const Page = () => {
 
       </SignedOut>
 
-      <footer className="mt-16 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-        <span className="flex items-center gap-2 font-bold text-foreground">
-          <span aria-hidden="true" className="size-5 rounded-full [background:conic-gradient(from_200deg,#ff6a3d,#ff3d7f,#7c5cff,#1fc8e6,#ff6a3d)] [mask:radial-gradient(circle,transparent_4px,#000_4.5px)]" />
-          nova
-        </span>
-        <nav aria-label="Footer" className="flex gap-6">
-          <Link href="/#examples" className="hover:text-foreground">Examples</Link>
-          <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
-          <Link href="/sign-in" className="hover:text-foreground">Sign in</Link>
-        </nav>
-      </footer>
     </div>
   );
 };

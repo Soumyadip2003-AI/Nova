@@ -5,6 +5,11 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/pricing(.*)",
+  "/how-it-works",
+  "/terms",
+  "/privacy",
+  "/robots.txt",
+  "/sitemap.xml",
   "/api/inngest(.*)",
   "/api/webhooks(.*)",
   // Every tRPC procedure checks auth itself (protectedProcedure) and answers a
