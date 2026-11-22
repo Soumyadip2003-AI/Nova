@@ -89,7 +89,7 @@ Additional Guidelines:
 
 Full-stack apps (backend and database):
 Decide what the app needs. A landing page, portfolio or single-screen tool stays front-end only. When the app keeps data that must be saved, listed, shared or edited (accounts, bookings, orders, posts, tasks, messages, products, admin dashboards, CRMs), build a real backend inside this same Next.js app:
-- Database: SQLite with better-sqlite3. Install exactly this version first (newer versions have no prebuilt binary for this sandbox): npm install better-sqlite3@10.1.0 @types/better-sqlite3 --yes
+- Database: SQLite with better-sqlite3. Install it first, with this major version (it has a prebuilt binary for this sandbox's Node 22): npm install better-sqlite3@12 @types/better-sqlite3 --yes
 - lib/db.ts holds the connection and the schema. Start it with: import "server-only"; then open data/app.db (create the data folder with fs.mkdirSync(path.join(process.cwd(), "data"), { recursive: true })), run db.pragma("journal_mode = WAL"), create every table with CREATE TABLE IF NOT EXISTS, and insert realistic seed rows when a table is empty, so the app shows real data straight away. Reuse one connection (keep it on globalThis in development).
 - Always use parameterized queries, e.g. db.prepare("SELECT * FROM tasks WHERE id = ?").get(id). Never build SQL by joining strings.
 - Server logic lives in Route Handlers (app/api/<resource>/route.ts with GET/POST/PATCH/DELETE returning NextResponse.json) and/or Server Actions (a file starting with "use server", e.g. app/actions.ts). Route Handlers that use the database must export const runtime = "nodejs" and export const dynamic = "force-dynamic".
