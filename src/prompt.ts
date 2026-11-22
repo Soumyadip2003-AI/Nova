@@ -79,6 +79,7 @@ Additional Guidelines:
 - Use relative imports (e.g., "./weather-card") for your own components in app/
 - Follow React best practices: semantic HTML, ARIA where needed, clean useState/useEffect usage
 - No external APIs, third-party services or API keys: everything runs inside this app
+- Fonts come from next/font/google (e.g. import { Playfair_Display } from "next/font/google"), never from npm packages
 - Responsive and accessible by default
 - Do not use external image URLs — rely on the user's uploaded images (paths under /uploads/ given in the request, used with a plain <img> tag) or on emojis and divs with proper aspect ratios (aspect-video, aspect-square, etc.) and color placeholders (e.g. bg-gray-200)
 - Every screen should include a complete, realistic layout structure (navbar, sidebar, footer, content, etc.) — avoid minimal or placeholder-only designs

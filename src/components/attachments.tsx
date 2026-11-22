@@ -220,6 +220,12 @@ export function AttachmentTray({ state, className }: { state: AttachmentsState; 
 function LinkField({ state }: { state: AttachmentsState }) {
     const [value, setValue] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    // The + menu hands focus back to its button as it closes; take it after that.
+    useEffect(() => {
+        const t = setTimeout(() => inputRef.current?.focus(), 60);
+        return () => clearTimeout(t);
+    }, []);
     const add = () => {
         const problem = state.addLink(value);
         setError(problem);
@@ -231,8 +237,8 @@ function LinkField({ state }: { state: AttachmentsState }) {
                 <LinkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <label htmlFor="reference-link" className="sr-only">Reference link</label>
                 <input
+                    ref={inputRef}
                     id="reference-link"
-                    autoFocus
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={(e) => {

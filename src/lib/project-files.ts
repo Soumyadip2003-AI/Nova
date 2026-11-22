@@ -81,3 +81,35 @@ export async function installDependencies(sandbox: Sandbox, files: Record<string
     if (!files["package.json"]) return;
     await sandbox.commands.run("npm install --no-audit --no-fund --loglevel=error", { timeoutMs: 240_000 });
 }
+
+export const DEV_SERVER_LOG = "/tmp/next-dev.log";
+
+/**
+ * Makes sure the app's dev server answers on port 3000, starting it again if
+ * it has died. The template starts `next dev` once, as the sandbox's start
+ * command, and nothing restarted it: when it crashed (seen after installing
+ * packages), every later check got no answer, repairs could not help, and the
+ * preview showed "port is not open". A restarted server logs to DEV_SERVER_LOG.
+ */
+export async function ensureDevServer(sandbox: Sandbox, waitMs = 60_000): Promise<"running" | "restarted" | "down"> {
+    const answers = async () => {
+        const r = await sandbox.commands.run("curl -s -o /dev/null -m 4 -w '%{http_code}' http://localhost:3000 || true", { timeoutMs: 10_000 });
+        return r.stdout.trim() !== "000";
+    };
+    if (await answers()) return "running";
+    // It may still be starting or compiling: give it a moment before restarting.
+    await new Promise((r) => setTimeout(r, 4_000));
+    if (await answers()) return "running";
+
+    // -p 3000: if an old server still holds the port, this one exits instead of moving to 3001.
+    await sandbox.commands.run(
+        `cd /home/user && (setsid nohup npx next dev --turbopack -p 3000 > ${DEV_SERVER_LOG} 2>&1 &)`,
+        { timeoutMs: 15_000 },
+    );
+    const deadline = Date.now() + waitMs;
+    while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 2_000));
+        if (await answers()) return "restarted";
+    }
+    return "down";
+}

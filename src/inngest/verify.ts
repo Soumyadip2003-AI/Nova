@@ -1,4 +1,5 @@
 import { getSandbox } from "./utils";
+import { DEV_SERVER_LOG, ensureDevServer } from "@/lib/project-files";
 
 /* Self-healing check: after the agent writes code, Nova verifies it the way a
    developer would before handing it over, and feeds any problems back to the
@@ -73,10 +74,20 @@ export async function verifySandbox(sandboxId: string, changed: string[]): Promi
     problems.push(...typeErrorsFor(tsc, codeFiles).slice(0, 20));
   }
 
+  // The dev server must be up before the app can be judged; if it died, start
+  // it again (its own crash is not a problem in the agent's code to repair).
+  // Budget: this whole check runs in one step, under Vercel's 300s limit.
+  const server = await ensureDevServer(sandbox, 40_000);
+  if (server === "down") {
+    const log = await run(`tail -c 1500 ${DEV_SERVER_LOG} 2>/dev/null || true`, 10_000);
+    problems.push(`The app's server does not start. Its last output: ${log.replace(/\s+/g, " ").trim().slice(-800) || "(none)"}`);
+    return { ok: false, problems };
+  }
+
   // Give the dev server a moment to recompile what was just written.
   const page = await run(
-    "sleep 3; curl -s -m 30 -o /tmp/nova-page.html -w '%{http_code}' http://localhost:3000; echo; head -c 20000 /tmp/nova-page.html",
-    45_000,
+    "sleep 2; curl -s -m 40 -o /tmp/nova-page.html -w '%{http_code}' http://localhost:3000 || true; echo; head -c 20000 /tmp/nova-page.html 2>/dev/null",
+    50_000,
   );
   const [statusLine = "", ...rest] = page.trimStart().split("\n");
   const pageIssue = pageProblem(Number(statusLine.trim()) || 0, rest.join("\n"));
@@ -84,8 +95,8 @@ export async function verifySandbox(sandboxId: string, changed: string[]): Promi
 
   // Full-stack apps: each API route the agent wrote must answer GET without a
   // server error (405 for POST-only routes is fine).
-  for (const route of apiRoutesFor(changed).slice(0, 8)) {
-    const out = await run(`curl -s -m 20 -o /tmp/nova-api.txt -w '%{http_code}' http://localhost:3000${route}; echo; head -c 400 /tmp/nova-api.txt`, 30_000);
+  for (const route of apiRoutesFor(changed).slice(0, 4)) {
+    const out = await run(`curl -s -m 15 -o /tmp/nova-api.txt -w '%{http_code}' http://localhost:3000${route} || true; echo; head -c 400 /tmp/nova-api.txt 2>/dev/null`, 20_000);
     const [code = "", ...body] = out.trimStart().split("\n");
     const status = Number(code.trim()) || 0;
     if (status === 0 || status >= 500) {

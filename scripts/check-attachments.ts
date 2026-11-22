@@ -1,4 +1,5 @@
-// Self-check for the attachment, link-reader and API-route logic. Run: npx tsx scripts/check-attachments.ts
+// Self-check for the attachment, link-reader and API-route logic. No database is used; the URL only satisfies the import.
+// Run: DATABASE_URL=postgresql://x@localhost/x npx tsx scripts/check-attachments.ts
 import assert from "node:assert/strict";
 import { attachmentProblem, fileKind, isFetchableUrl, uploadType, type Attachment } from "../src/lib/attachments";
 import { isPrivateIp, summarizePage } from "../src/lib/link-reader";

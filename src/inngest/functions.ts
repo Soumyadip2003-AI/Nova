@@ -7,7 +7,7 @@ import { Sandbox} from "@e2b/code-interpreter"
 import { verifySandbox, repairPrompt, problemFiles, readSandboxFiles } from "./verify";
 import { getSandbox, lastAssistantTextMessageContent } from "./utils";
 import { buildDesignBrief, promptWithBrief } from "./design-brief";
-import { installDependencies, writeProjectAssets } from "@/lib/project-files";
+import { ensureDevServer, installDependencies, writeProjectAssets } from "@/lib/project-files";
 import { attachmentsSchema } from "@/lib/attachments";
 /** A command as one readable line for the thinking log. */
 const shortCommand = (cmd: string) => {
@@ -206,7 +206,10 @@ export const codeAgentFunction = inngest.createFunction(
             await sandbox.files.write(path, content);
           }
           // A full-stack app saves its package.json; its packages are not in the template.
-          await installDependencies(sandbox, files);
+          if (files["package.json"]) {
+            await installDependencies(sandbox, files);
+            await ensureDevServer(sandbox, 45_000);
+          }
         }
         // The user's uploaded images, so the app can use them (/uploads/...).
         await writeProjectAssets(sandbox, event.data.projectId);
@@ -239,7 +242,8 @@ export const codeAgentFunction = inngest.createFunction(
           }),
           handler: async ({command},{step, network})=>{
             // Installing packages changes package.json, which the saved version must then include.
-            if (network && /\b(npm (i|install|add)|pnpm add|yarn add)\b/.test(command)) {
+            const installs = /\b(npm (i|install|add)|pnpm add|yarn add)\b/.test(command);
+            if (network && installs) {
               network.state.data.dependenciesChanged = true;
             }
             return await step?.run("terminal", async()=> {
@@ -258,6 +262,11 @@ export const codeAgentFunction = inngest.createFunction(
                 });
 
                 await appendThinkingLog(thinkingMessage.id, `Ran ${shortCommand(command)}`);
+                // Installing packages can take the dev server down; bring it back
+                // so the agent's next check talks to a running app.
+                if (installs && (await ensureDevServer(sandbox, 45_000)) === "restarted") {
+                  await appendThinkingLog(thinkingMessage.id, "Restarted the app after installing packages");
+                }
                 return result.stdout;
 
               }catch(e){
@@ -531,6 +540,8 @@ export const codeAgentFunction = inngest.createFunction(
         );
 
         const sandbox = await getSandbox(sandboxId);
+        // The preview must open on a running server, not "port is not open".
+        await ensureDevServer(sandbox, 60_000);
         const host = sandbox.getHost(3000);
 
         await completeCurrentThinkingStep(thinkingMessage.id);

@@ -1,5 +1,5 @@
 import { Sandbox } from "@e2b/code-interpreter";
-import { installDependencies, writeProjectAssets } from "@/lib/project-files";
+import { ensureDevServer, installDependencies, writeProjectAssets } from "@/lib/project-files";
 
 const TEMPLATE_ID = () => process.env.E2B_TEMPLATE_ID || "c7kxk6kebmrc9xzxb09f";
 
@@ -18,6 +18,8 @@ export async function startPreview(files: Record<string, string>, isPro: boolean
     }
     await installDependencies(sandbox, files);
     await writeProjectAssets(sandbox, projectId);
+    // Installing packages can take the dev server down; bring it back.
+    if (files["package.json"]) await ensureDevServer(sandbox, 30_000);
     return `https://${sandbox.getHost(3000)}`;
 }
 
