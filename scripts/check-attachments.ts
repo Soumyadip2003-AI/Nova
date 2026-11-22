@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { attachmentProblem, fileKind, isFetchableUrl, uploadType, type Attachment } from "../src/lib/attachments";
 import { isPrivateIp, summarizePage } from "../src/lib/link-reader";
 import { apiRoutesFor, problemFiles } from "../src/inngest/verify";
+import { isDefinitelyQuestion } from "../src/lib/question-detector";
 
 const U = "user_1";
 const file = (name: string, extra: Partial<Attachment & { kind: "file" }> = {}): Attachment =>
@@ -61,5 +62,13 @@ assert.ok(s.headings.includes("h1: Ship faster"));
 assert.deepEqual(apiRoutesFor(["app/api/tasks/route.ts", "app/api/tasks/[id]/route.ts", "app/page.tsx", "src/app/api/(admin)/stats/route.ts"]), ["/api/tasks", "/api/stats"]);
 assert.deepEqual(problemFiles(["GET /api/tasks returns HTTP 500: no such table"]), ["app/api/tasks/route.ts", "lib/db.ts"]);
 assert.deepEqual(problemFiles(["app/page.tsx(3,1): error TS2307: x"]), ["app/page.tsx"]);
+
+// Change requests vs questions
+assert.equal(isDefinitelyQuestion("Show how many open tasks each filter has, next to Today, Upcoming and Done"), false);
+assert.equal(isDefinitelyQuestion("Add dark mode"), false);
+assert.equal(isDefinitelyQuestion("Make the header sticky"), false);
+assert.equal(isDefinitelyQuestion("How many files did you create?"), true);
+assert.equal(isDefinitelyQuestion("Show me how this works?"), true);
+assert.equal(isDefinitelyQuestion("What does the API route do"), true);
 
 console.log("attachments self-check: ok");
