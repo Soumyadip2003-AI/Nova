@@ -165,7 +165,9 @@ export function FragmentWeb({ data }: Props) {
                     </div>
                 ) : (
                     <>
-                        {isLoading && (
+                        {/* Also wait for the liveness check: a stopped sandbox otherwise
+                            flashes E2B's raw "502 sandbox not found" page first. */}
+                        {(isLoading || alive.isPending) && (
                             <div
                                 className="absolute inset-0 z-10 flex items-center justify-center bg-card"
                                 role="status"
