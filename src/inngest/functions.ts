@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { inngest } from "./client";
 import { NonRetriableError } from "inngest";
+import { SITE } from "@/lib/site";
 import {  openai, createAgent, createTool, createNetwork, createState, type Tool } from "@inngest/agent-kit";
 import { Sandbox} from "@e2b/code-interpreter"
 import { verifySandbox, repairPrompt } from "./verify";
@@ -214,6 +215,8 @@ export const codeAgentFunction = inngest.createFunction(
       description: "An expert coding agent",
       model: openai({
         model: selectedModel,
+        // Through Nova's pass-through so OpenAI's error text is logged.
+        baseUrl: `${SITE.url}/api/ai/openai/`,
         // Reasoning-era models (o1, GPT-5 and later) reject a custom temperature.
         // GPT-4 models take a custom temperature. Newer reasoning-era models
         // (o1, GPT-5, GPT-6) reject it, and reject parallel_tool_calls, which
