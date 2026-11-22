@@ -8,7 +8,6 @@ import { FileTextIcon, ImageIcon, LinkIcon, Loader2Icon, PaperclipIcon, PlusIcon
 import { useTRPC } from "@/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -181,6 +180,7 @@ export function useAttachments() {
     }, [addFiles]);
 
     const [dragging, setDragging] = useState(false);
+    const [linkOpen, setLinkOpen] = useState(false);
     const dropProps = {
         onDragOver: (e: DragEvent) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDragging(true); } },
         onDragLeave: (e: DragEvent) => { if (e.currentTarget === e.target) setDragging(false); },
@@ -197,7 +197,7 @@ export function useAttachments() {
         attachments: items.filter((i) => i.status === "ready").flatMap((i) => i.attachments),
         uploading: items.some((i) => i.status === "uploading"),
         enabled: !!userId,
-        addFiles, addLink, remove, clear, onPaste, dropProps, dragging,
+        addFiles, addLink, remove, clear, onPaste, dropProps, dragging, linkOpen, setLinkOpen,
     };
 }
 
@@ -207,9 +207,54 @@ const kindIcon = { image: ImageIcon, recording: VideoIcon, pdf: FileTextIcon, te
 
 /** The chosen references, shown above the message box. */
 export function AttachmentTray({ state, className }: { state: AttachmentsState; className?: string }) {
-    if (!state.items.length) return null;
+    if (!state.items.length && !state.linkOpen) return null;
     return (
-        <ul className={cn("flex flex-wrap gap-2 px-3.5 pt-3", className)} aria-label="Design references">
+        <div className={cn("flex flex-col gap-2 px-3.5 pt-3", className)}>
+            {state.linkOpen && <LinkField state={state} />}
+            {state.items.length > 0 && <ItemList state={state} />}
+        </div>
+    );
+}
+
+/** Inline link entry. Not a nested <form>: it sits inside the composer's form. */
+function LinkField({ state }: { state: AttachmentsState }) {
+    const [value, setValue] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const add = () => {
+        const problem = state.addLink(value);
+        setError(problem);
+        if (!problem) { setValue(""); state.setLinkOpen(false); }
+    };
+    return (
+        <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+                <LinkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <label htmlFor="reference-link" className="sr-only">Reference link</label>
+                <input
+                    id="reference-link"
+                    autoFocus
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); add(); }
+                        if (e.key === "Escape") { e.preventDefault(); state.setLinkOpen(false); }
+                    }}
+                    placeholder="A site whose look you like, e.g. stripe.com"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? "reference-link-error" : undefined}
+                    className="h-9 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <Button type="button" onClick={add} className="h-9 rounded-xl px-3">Add</Button>
+                <Button type="button" variant="ghost" onClick={() => state.setLinkOpen(false)} className="h-9 rounded-xl px-3">Cancel</Button>
+            </div>
+            {error && <p id="reference-link-error" className="pl-6 text-xs text-destructive">{error}</p>}
+        </div>
+    );
+}
+
+function ItemList({ state }: { state: AttachmentsState }) {
+    return (
+        <ul className="flex flex-wrap gap-2" aria-label="Design references">
             {state.items.map((item) => {
                 const Icon = kindIcon[item.kind];
                 return (
@@ -259,16 +304,7 @@ export function AttachmentTray({ state, className }: { state: AttachmentsState; 
 /** The "+" button: upload from the computer, or add a link. */
 export function AttachButton({ state, disabled }: { state: AttachmentsState; disabled?: boolean }) {
     const inputRef = useRef<HTMLInputElement>(null);
-    const [linkOpen, setLinkOpen] = useState(false);
-    const [link, setLink] = useState("");
-    const [linkError, setLinkError] = useState<string | null>(null);
     if (!state.enabled) return null;
-
-    const submitLink = () => {
-        const error = state.addLink(link);
-        setLinkError(error);
-        if (!error) { setLink(""); setLinkOpen(false); }
-    };
 
     return (
         <>
@@ -283,21 +319,18 @@ export function AttachButton({ state, disabled }: { state: AttachmentsState; dis
                     e.target.value = "";
                 }}
             />
-            <Popover open={linkOpen} onOpenChange={(open) => { setLinkOpen(open); setLinkError(null); }}>
                 <DropdownMenu>
-                    <PopoverTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                disabled={disabled}
-                                aria-label="Add design references"
-                                className="size-9 shrink-0 rounded-full bg-muted p-0 text-foreground hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                                <PlusIcon className="size-4" aria-hidden />
-                            </Button>
-                        </DropdownMenuTrigger>
-                    </PopoverTrigger>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={disabled}
+                            aria-label="Add design references"
+                            className="size-9 shrink-0 rounded-full bg-muted p-0 text-foreground hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            <PlusIcon className="size-4" aria-hidden />
+                        </Button>
+                    </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64 rounded-2xl p-1.5">
                         <DropdownMenuItem className="cursor-pointer gap-3 rounded-xl py-2" onSelect={() => inputRef.current?.click()}>
                             <PaperclipIcon className="size-4" aria-hidden />
@@ -306,7 +339,7 @@ export function AttachButton({ state, disabled }: { state: AttachmentsState; dis
                                 <span className="text-xs text-muted-foreground">Screenshots, recordings, PDFs, files</span>
                             </span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer gap-3 rounded-xl py-2" onSelect={() => setTimeout(() => setLinkOpen(true), 0)}>
+                        <DropdownMenuItem className="cursor-pointer gap-3 rounded-xl py-2" onSelect={() => state.setLinkOpen(true)}>
                             <LinkIcon className="size-4" aria-hidden />
                             <span className="flex flex-col">
                                 <span className="font-medium">Add a link</span>
@@ -315,29 +348,6 @@ export function AttachButton({ state, disabled }: { state: AttachmentsState; dis
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <PopoverContent align="start" className="w-80 rounded-2xl p-3">
-                    <form
-                        onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); submitLink(); }}
-                        className="flex flex-col gap-2"
-                    >
-                        <label htmlFor="reference-link" className="text-sm font-medium">Reference link</label>
-                        <div className="flex gap-2">
-                            <input
-                                id="reference-link"
-                                autoFocus
-                                value={link}
-                                onChange={(e) => setLink(e.target.value)}
-                                placeholder="stripe.com"
-                                aria-invalid={!!linkError}
-                                aria-describedby={linkError ? "reference-link-error" : undefined}
-                                className="h-9 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            />
-                            <Button type="submit" className="h-9 rounded-xl px-3">Add</Button>
-                        </div>
-                        {linkError && <p id="reference-link-error" className="text-xs text-destructive">{linkError}</p>}
-                    </form>
-                </PopoverContent>
-            </Popover>
         </>
     );
 }
