@@ -82,13 +82,13 @@ const ThinkingLog = ({ thinking }: { thinking: ThinkingData }) => {
     return (
         <div className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card px-4 py-3.5">
             <div className="flex items-center gap-2">
-                <p className="font-mono text-xs text-muted-foreground">{working ? "Working on it" : "Finished"}</p>
+                <p className="text-[13px] font-medium text-muted-foreground">{working ? "Working on it" : "Finished"}</p>
                 {lines.length > 2 && (
                     <button
                         type="button"
                         onClick={() => setOpen((o) => !o)}
                         aria-expanded={open}
-                        className="ml-auto flex items-center gap-1 rounded-[10px] px-2 py-1 font-mono text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                         <span>{open ? "Show fewer" : `Show ${hidden} more`}</span>
                         <ChevronUp className={cn("size-4 transition-transform", !open && "rotate-180")} aria-hidden />
@@ -124,7 +124,7 @@ const ShimmerMessages = ({ thinking }: { thinking?: ThinkingData | null }) => {
     return (
         <div className="flex items-center gap-2.5 rounded-2xl border border-border bg-card px-4 py-3.5" role="status">
             <Loader2Icon className="size-4 animate-spin text-muted-foreground" aria-hidden />
-            <span className="font-mono text-xs text-muted-foreground">Getting started</span>
+            <span className="text-[13px] font-medium text-muted-foreground">Getting started</span>
         </div>
     );
 };

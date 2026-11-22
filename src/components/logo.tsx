@@ -6,33 +6,29 @@ interface LogoProps {
     size?: number;
     showText?: boolean;
     className?: string;
-    /** Kept for existing callers; the proofread mark has no hover glow. */
+    /** Kept for existing callers. */
     hover?: boolean;
     withContainer?: boolean;
     containerClassName?: string;
-    /** Gently pulses the mark while Nova is working. */
+    /** Spins the ring slowly while Nova is working. */
     pulse?: boolean;
+    /** White wordmark, for use on the nova gradient. */
+    inverted?: boolean;
 }
 
-/** The Nova mark: an ink tile with a highlighter "N". */
+/** The Nova mark: a ring of the nova gradient. */
 const Mark = ({ size, pulse }: { size: number; pulse?: boolean }) => (
-    <svg
-        width={size}
-        height={size}
-        viewBox="0 0 28 28"
+    <span
         aria-hidden="true"
-        className={cn("shrink-0", pulse && "animate-pulse")}
-    >
-        <rect x="2" y="2" width="24" height="24" rx="7" className="fill-[#13213a] dark:fill-[#f5e663]" />
-        <path
-            d="M9 19V9l10 10V9"
-            fill="none"
-            className="stroke-[#f5e663] dark:stroke-[#13213a]"
-            strokeWidth="2.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-    </svg>
+        className={cn("relative inline-block shrink-0 rounded-full", pulse && "animate-spin [animation-duration:3s]")}
+        style={{
+            width: size,
+            height: size,
+            background: "conic-gradient(from 200deg, #ff6a3d, #ff3d7f, #7c5cff, #1fc8e6, #ff6a3d)",
+            WebkitMask: `radial-gradient(circle, transparent ${size * 0.2}px, #000 ${size * 0.2 + 0.5}px)`,
+            mask: `radial-gradient(circle, transparent ${size * 0.2}px, #000 ${size * 0.2 + 0.5}px)`,
+        }}
+    />
 );
 
 export const Logo = ({
@@ -42,6 +38,7 @@ export const Logo = ({
     withContainer = false,
     containerClassName,
     pulse = false,
+    inverted = false,
 }: LogoProps) => {
     const mark = withContainer ? (
         <span className={cn("flex items-center justify-center", containerClassName)}>
@@ -57,11 +54,12 @@ export const Logo = ({
             {showText ? (
                 <span
                     className={cn(
-                        "font-display font-bold tracking-tight text-foreground",
+                        "font-bold tracking-[-0.03em]",
+                        inverted ? "text-white" : "text-foreground",
                         size >= 24 ? "text-xl" : "text-base",
                     )}
                 >
-                    Nova
+                    nova
                 </span>
             ) : (
                 <span className="sr-only">Nova</span>

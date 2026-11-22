@@ -229,7 +229,7 @@ export const FileExplorer = ({ files }: FileExplorerProps) => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="size-8 shrink-0 rounded-[10px] hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                                        className="size-8 shrink-0 rounded-xl hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                                         onClick={handleDownloadAll}
                                         aria-label="Download all files"
                                     >
@@ -240,7 +240,7 @@ export const FileExplorer = ({ files }: FileExplorerProps) => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="size-8 shrink-0 rounded-[10px] hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                                        className="size-8 shrink-0 rounded-xl hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                                         onClick={handleCopy}
                                         aria-label={copied ? "Copied" : "Copy this file"}
                                     >

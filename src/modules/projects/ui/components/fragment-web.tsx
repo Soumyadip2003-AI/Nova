@@ -11,7 +11,7 @@ interface Props {
 }
 
 const iconButton =
-    "size-9 rounded-[10px] p-0 text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring";
+    "size-9 rounded-xl p-0 text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring";
 
 export function FragmentWeb({ data }: Props) {
     const [fragmentKey, setFragmentKey] = useState(0);
@@ -52,7 +52,7 @@ export function FragmentWeb({ data }: Props) {
                     </Button>
                 </Hint>
 
-                <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-muted px-3">
+                <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-xl bg-muted px-3">
                     <GlobeIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                     <span className="truncate font-mono text-xs text-muted-foreground">
                         {data.sandboxUrl}
@@ -101,16 +101,16 @@ export function FragmentWeb({ data }: Props) {
             <div className="relative flex-1">
                 {loadError ? (
                     <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center" role="alert">
-                        <span className="mb-5 flex size-12 items-center justify-center rounded-[10px] bg-destructive-soft">
+                        <span className="mb-5 flex size-12 items-center justify-center rounded-xl bg-destructive-soft">
                             <GlobeIcon className="size-5 text-destructive" aria-hidden />
                         </span>
-                        <h3 className="font-display text-lg font-bold">The preview did not load</h3>
+                        <h3 className="text-lg font-bold">The preview did not load</h3>
                         <p className="mt-2 mb-6 max-w-xs text-sm text-muted-foreground">
                             Your app may still be starting. Reload to try again.
                         </p>
                         <Button
                             onClick={onRefresh}
-                            className="h-10 gap-2 rounded-[10px] px-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            className="h-10 gap-2 rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
                             <RefreshCcwIcon className="size-4" aria-hidden />
                             Try again

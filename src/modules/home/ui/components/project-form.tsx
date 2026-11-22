@@ -150,8 +150,8 @@ export const ProjectForm = () => {
                 <form
                     onSubmit={form.handleSubmit(onSubmit)}
                     className={cn(
-                        "rounded-2xl border-[1.5px] border-foreground bg-card p-4 shadow-stamp sm:p-5",
-                        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background"
+                        "rounded-[20px] bg-card p-4 text-card-foreground shadow-float sm:p-5",
+                        "focus-within:ring-2 focus-within:ring-ring/60"
                     )}
                     onKeyDown={(e) => {
                         if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
@@ -161,7 +161,7 @@ export const ProjectForm = () => {
                         }
                     }}
                 >
-                    <label htmlFor="project-idea" className="block font-mono text-xs text-muted-foreground">
+                    <label htmlFor="project-idea" className="block text-[13px] font-bold text-muted-foreground">
                         What do you want to build?
                     </label>
                     <FormField
@@ -175,7 +175,7 @@ export const ProjectForm = () => {
                                 {...field}
                                 readOnly={isSubmitting}
                                 className={cn(
-                                    "mt-2 w-full resize-none border-none bg-transparent text-lg leading-normal text-foreground outline-none",
+                                    "mt-1.5 w-full resize-none border-none bg-transparent text-[17px] font-medium leading-normal text-foreground outline-none",
                                     "placeholder:text-muted-foreground",
                                     isSubmitting && "cursor-not-allowed opacity-60"
                                 )}
@@ -193,15 +193,15 @@ export const ProjectForm = () => {
                                     disabled={isSubmitting}
                                 />
                             )}
-                            <span className="text-[13px] text-muted-foreground">
-                                {isSignedIn ? "Uses 1 credit." : "Uses 1 credit. You get 5 free each month."}
+                            <span className="inline-flex h-7 items-center rounded-full bg-muted px-3 text-[12.5px] font-medium text-muted-foreground">
+                                {isSignedIn ? "1 credit" : "1 credit, 5 free a month"}
                             </span>
                         </div>
 
                         <Button
                             type="submit"
                             disabled={isButtonDisabled}
-                            className="ml-auto h-12 rounded-[10px] px-[22px] text-base font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            className="ml-auto h-11 rounded-full px-6 text-[15px] font-bold focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
                             {isSubmitting ? (
                                 <>
@@ -209,7 +209,7 @@ export const ProjectForm = () => {
                                     Starting…
                                 </>
                             ) : (
-                                "Build it"
+                                "Build"
                             )}
                         </Button>
                     </div>
@@ -218,10 +218,9 @@ export const ProjectForm = () => {
                         <kbd className="rounded-md border border-border bg-muted px-1.5 font-mono text-[11px]">Cmd</kbd> +{" "}
                         <kbd className="rounded-md border border-border bg-muted px-1.5 font-mono text-[11px]">Enter</kbd> to build.
                     </p>
-                </form>
 
                 {isSignedIn && usage && (
-                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono text-[13px] text-muted-foreground">
+                    <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-border pt-3 text-[13px] text-muted-foreground">
                         {isOutOfCredits ? (
                             <p className="flex items-center gap-1.5 font-medium text-foreground">
                                 <CircleAlertIcon className="size-4 shrink-0 text-destructive" aria-hidden="true" />
@@ -238,24 +237,25 @@ export const ProjectForm = () => {
                         {usage.plan !== "PRO" && (
                             <Link
                                 href="/pricing"
-                                className="rounded-[10px] font-sans font-medium text-foreground underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="ml-auto rounded-full font-bold text-[var(--nova-violet)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                                 Upgrade to Pro
                             </Link>
                         )}
                     </div>
                 )}
+                </form>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <span className="mr-1 font-mono text-xs text-muted-foreground">Or start from</span>
+                    <span className="mr-1 text-[13px] font-medium text-muted-foreground lg:text-white/90">Try</span>
                     {PROJECT_TEMPLATES.map((template) => (
                         <button
                             key={template.title}
                             type="button"
                             onClick={() => onSelect(template.prompt)}
                             className={cn(
-                                "h-9 rounded-full border-[1.5px] border-foreground bg-card px-3.5 text-sm text-foreground",
-                                "hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                "h-8 rounded-full bg-white/95 px-3.5 text-[13px] font-medium text-[#0b1b33] shadow-sm ring-1 ring-border transition-transform lg:ring-0",
+                                "hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                             )}
                         >
                             {template.title.replace(/^Build an? /, "").replace(/^./, (c) => c.toUpperCase())}

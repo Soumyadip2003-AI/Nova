@@ -53,10 +53,10 @@ export const ProjectList = () => {
     return (
         <section aria-labelledby="projects-title" className="space-y-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="projects-title" className="font-display text-3xl font-bold tracking-[-0.02em]">
+                <h2 id="projects-title" className="text-3xl font-bold tracking-[-0.02em]">
                     Your projects
                 </h2>
-                <p className="font-mono text-[13px] text-muted-foreground">
+                <p className="text-sm font-medium text-muted-foreground">
                     {projects.length} project{projects.length !== 1 ? "s" : ""}
                 </p>
             </div>
@@ -66,15 +66,15 @@ export const ProjectList = () => {
                     <li
                         key={project.id}
                         className={cn(
-                            "group relative flex h-full flex-col gap-4 rounded-2xl border-[1.5px] border-foreground bg-card p-5",
-                            "hover:shadow-stamp-sm focus-within:shadow-stamp-sm"
+                            "group relative flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5",
+                            "hover:shadow-float focus-within:shadow-float"
                         )}
                     >
                         <div className="flex items-start justify-between gap-3">
                             <Link
                                 href={`/projects/${project.id}`}
                                 className={cn(
-                                    "line-clamp-2 min-w-0 rounded-[10px] font-medium leading-snug text-foreground",
+                                    "line-clamp-2 min-w-0 rounded-xl font-medium leading-snug text-foreground",
                                     "after:absolute after:inset-0 after:rounded-2xl after:content-['']",
                                     "focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring",
                                     "group-hover:underline underline-offset-4"
@@ -88,7 +88,7 @@ export const ProjectList = () => {
                                 size="icon"
                                 aria-label="Delete project"
                                 className={cn(
-                                    "relative z-10 size-9 shrink-0 rounded-[10px] text-muted-foreground",
+                                    "relative z-10 size-9 shrink-0 rounded-xl text-muted-foreground",
                                     "hover:bg-destructive-soft hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
                                 )}
                                 onClick={(e) => {
@@ -101,7 +101,7 @@ export const ProjectList = () => {
                             </Button>
                         </div>
 
-                        <p className="mt-auto flex items-center gap-1.5 border-t border-border pt-3 font-mono text-xs text-muted-foreground">
+                        <p className="mt-auto flex items-center gap-1.5 border-t border-border pt-3 text-xs font-medium text-muted-foreground">
                             <ClockIcon className="size-3.5" aria-hidden="true" />
                             Updated{" "}
                             {formatDistanceToNow(new Date(project.updatedAt), {
@@ -113,9 +113,9 @@ export const ProjectList = () => {
             </ul>
 
             <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-                <AlertDialogContent className="rounded-2xl border-[1.5px] border-foreground shadow-stamp">
+                <AlertDialogContent className="rounded-2xl border border-border shadow-float">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="font-display text-xl">Delete this project?</AlertDialogTitle>
+                        <AlertDialogTitle className="text-xl">Delete this project?</AlertDialogTitle>
                         <AlertDialogDescription className="text-muted-foreground">
                             The project, its chat and every version will be removed for good. You cannot undo this.
                         </AlertDialogDescription>
@@ -123,14 +123,14 @@ export const ProjectList = () => {
                     <AlertDialogFooter className="gap-2">
                         <AlertDialogCancel
                             disabled={deleteMutation.isPending}
-                            className="rounded-[10px]"
+                            className="rounded-xl"
                         >
                             Keep it
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
                             disabled={deleteMutation.isPending}
-                            className="rounded-[10px] bg-destructive text-primary-foreground hover:bg-destructive/90"
+                            className="rounded-xl bg-destructive text-primary-foreground hover:bg-destructive/90"
                         >
                             {deleteMutation.isPending ? (
                                 <>

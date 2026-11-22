@@ -54,7 +54,7 @@ export default function PaymentSuccessPage() {
             <div
                 role="status"
                 aria-live="polite"
-                className="w-full max-w-md rounded-2xl border-[1.5px] border-foreground bg-card p-6 text-card-foreground sm:p-8 shadow-stamp"
+                className="w-full max-w-md rounded-[24px] bg-card p-6 text-card-foreground sm:p-8 shadow-float"
             >
                 {status === "loading" && (
                     <>
@@ -62,7 +62,7 @@ export default function PaymentSuccessPage() {
                             <Loader2Icon aria-hidden className="size-4 animate-spin" />
                             Working on it
                         </p>
-                        <h1 className="mt-3 font-display text-3xl font-bold tracking-[-0.02em]">
+                        <h1 className="mt-3 text-3xl font-bold tracking-[-0.02em]">
                             Turning on Pro
                         </h1>
                         <p className="mt-2 text-muted-foreground">
@@ -73,15 +73,15 @@ export default function PaymentSuccessPage() {
 
                 {status === "success" && (
                     <>
-                        <p className="inline-flex items-center gap-2 rounded-[10px] bg-success-soft px-2.5 py-1 text-sm font-medium text-success-strong">
+                        <p className="inline-flex items-center gap-2 rounded-full bg-success-soft px-2.5 py-1 text-sm font-medium text-success-strong">
                             <CheckCircle2Icon aria-hidden className="size-4" />
                             Pro is on
                         </p>
-                        <h1 className="mt-3 font-display text-3xl font-bold tracking-[-0.02em]">
-                            Welcome to <span className="mark-highlight">Pro</span>
+                        <h1 className="mt-3 text-3xl font-bold tracking-[-0.02em]">
+                            Welcome to Pro
                         </h1>
                         <p className="mt-2 text-muted-foreground">
-                            You now have <span className="font-mono text-foreground">100</span> credits every month.
+                            You now have <b className="text-foreground">100</b> credits every month.
                         </p>
                         <p className="mt-6 text-sm text-muted-foreground">Taking you back to the home page.</p>
                     </>
@@ -89,11 +89,11 @@ export default function PaymentSuccessPage() {
 
                 {status === "error" && (
                     <>
-                        <p className="inline-flex items-center gap-2 rounded-[10px] bg-destructive-soft px-2.5 py-1 text-sm font-medium text-foreground">
+                        <p className="inline-flex items-center gap-2 rounded-full bg-destructive-soft px-2.5 py-1 text-sm font-medium text-foreground">
                             <AlertCircleIcon aria-hidden className="size-4 text-destructive" />
                             Not finished
                         </p>
-                        <h1 className="mt-3 font-display text-3xl font-bold tracking-[-0.02em]">
+                        <h1 className="mt-3 text-3xl font-bold tracking-[-0.02em]">
                             Something went wrong
                         </h1>
                         <p className="mt-2 text-muted-foreground">

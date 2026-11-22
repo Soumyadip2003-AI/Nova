@@ -152,8 +152,8 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
             <form
                 onSubmit={form.handleSubmit(onSubmit)}
                 className={cn(
-                    "rounded-[10px] border-[1.5px] border-foreground bg-card",
-                    isFocused && "ring-2 ring-ring ring-offset-2 ring-offset-card"
+                    "rounded-[20px] bg-card shadow-[inset_0_0_0_1px_var(--border),0_8px_24px_-16px_rgba(11,27,51,.3)]",
+                    isFocused && "ring-2 ring-ring/60"
                 )}
                 onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
@@ -194,7 +194,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                     />
                 </div>
 
-                <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2 px-3 pb-3 pt-1.5">
                     <div className="flex min-w-0 items-center gap-3">
                         <ModelSelector
                             value={project.model || "gpt-4o-mini"}
@@ -213,7 +213,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                             onClick={handleStopThinking}
                             disabled={isCancelling}
                             variant="outline"
-                            className="h-10 shrink-0 gap-2 rounded-[10px] border-[1.5px] border-destructive px-4 text-destructive hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
+                            className="h-9 shrink-0 gap-2 rounded-full border border-destructive px-4 text-destructive hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
                         >
                             {isCancelling ? (
                                 <>
@@ -231,7 +231,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                         <Button
                             type="submit"
                             disabled={isButtonDisabled}
-                            className="h-10 shrink-0 gap-2 rounded-[10px] bg-primary px-4 text-[15px] font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                            className="h-9 shrink-0 gap-2 rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                         >
                             Send
                             <ArrowUpIcon className="size-4" aria-hidden />

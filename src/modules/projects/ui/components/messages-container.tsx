@@ -76,10 +76,10 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
                     {/* Welcome message when no messages */}
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center px-2 py-16 text-center">
-                            <span className="mb-5 flex size-12 items-center justify-center rounded-2xl border-[1.5px] border-foreground bg-card">
+                            <span className="mb-5 flex size-12 items-center justify-center rounded-2xl border border-border bg-card">
                                 <MessageCircleIcon className="size-5" aria-hidden />
                             </span>
-                            <h2 className="mb-2 font-display text-xl font-bold">Tell Nova what to build</h2>
+                            <h2 className="mb-2 text-xl font-bold">Tell Nova what to build</h2>
                             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
                                 Describe it in plain words. Nova builds it and checks it works before you see it.
                             </p>
@@ -116,7 +116,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
             </div>
 
             {/* Input area */}
-            <div className="border-t-[1.5px] border-foreground bg-card p-3 sm:px-4 sm:py-3.5">
+            <div className="border-t border-border bg-card p-3 sm:px-4 sm:py-3.5">
                 <MessageForm
                     projectId={projectId}
                     isThinking={!!lastThinkingMessage}

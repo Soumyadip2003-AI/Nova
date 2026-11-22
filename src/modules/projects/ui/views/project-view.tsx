@@ -24,7 +24,7 @@ const MessagesLoadingSkeleton = () => (
         <span className="sr-only">Loading the chat</span>
         <div className="ml-auto h-12 w-3/4 animate-pulse rounded-xl bg-muted" />
         <div className="h-36 w-full animate-pulse rounded-xl bg-muted" />
-        <div className="h-4 w-2/3 animate-pulse rounded-[10px] bg-muted" />
+        <div className="h-4 w-2/3 animate-pulse rounded-xl bg-muted" />
     </div>
 );
 
@@ -32,8 +32,8 @@ const MessagesLoadingSkeleton = () => (
 const HeaderLoadingSkeleton = () => (
     <div className="flex items-center gap-3" role="status">
         <span className="sr-only">Loading the project</span>
-        <div className="size-7 animate-pulse rounded-[10px] bg-muted" />
-        <div className="h-5 w-40 animate-pulse rounded-[10px] bg-muted" />
+        <div className="size-7 animate-pulse rounded-xl bg-muted" />
+        <div className="h-5 w-40 animate-pulse rounded-xl bg-muted" />
     </div>
 );
 
@@ -47,16 +47,16 @@ const EmptyState = ({
     body: string;
 }) => (
     <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-        <span className="mb-5 flex size-12 items-center justify-center rounded-[10px] border-[1.5px] border-foreground bg-background">
+        <span className="mb-5 flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
             <Icon className="size-5" aria-hidden />
         </span>
-        <h2 className="font-display text-xl font-bold text-balance">{title}</h2>
+        <h2 className="text-xl font-bold text-balance">{title}</h2>
         <p className="mt-2 max-w-xs text-sm text-muted-foreground text-pretty">{body}</p>
     </div>
 );
 
 const tabTriggerClass =
-    "h-9 flex-none gap-2 rounded-[10px] border-0 px-4 text-sm font-medium text-muted-foreground shadow-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none dark:text-muted-foreground dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground";
+    "h-8 flex-none gap-2 rounded-full border-0 px-4 text-sm font-medium text-muted-foreground shadow-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[0_1px_3px_rgba(11,27,51,.14)] dark:text-muted-foreground dark:data-[state=active]:bg-card dark:data-[state=active]:text-foreground";
 
 export const ProjectView = ({ projectId }: Props) => {
     const [activeFragment, setActiveFragment] = useState<Fragment | null>(null);
@@ -73,9 +73,9 @@ export const ProjectView = ({ projectId }: Props) => {
     });
 
     return (
-        <div className="flex h-dvh flex-col bg-background text-foreground">
+        <div className="flex h-dvh flex-col bg-muted text-foreground">
             {/* Workspace header */}
-            <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b-[1.5px] border-foreground bg-card px-3 sm:px-5">
+            <header className="flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 sm:px-5">
                 <Suspense fallback={<HeaderLoadingSkeleton />}>
                     <ProjectHeader projectId={projectId} />
                 </Suspense>
@@ -112,7 +112,7 @@ export const ProjectView = ({ projectId }: Props) => {
 
                 <ResizableHandle
                     withHandle
-                    className="w-[1.5px] bg-foreground focus-visible:ring-2 focus-visible:ring-ring data-[panel-group-direction=vertical]:h-[1.5px] data-[panel-group-direction=vertical]:w-full"
+                    className="w-px bg-border focus-visible:ring-2 focus-visible:ring-ring data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full"
                 />
 
                 {/* Right panel: preview and code */}
@@ -128,7 +128,7 @@ export const ProjectView = ({ projectId }: Props) => {
                     >
                         <TabsList
                             aria-label="View"
-                            className="h-auto gap-1 rounded-[10px] bg-muted p-1"
+                            className="h-auto gap-1 rounded-full bg-[color-mix(in_srgb,var(--foreground)_7%,transparent)] p-1"
                         >
                             <TabsTrigger value="preview" className={tabTriggerClass}>
                                 <EyeIcon className="size-4" aria-hidden />
@@ -142,7 +142,7 @@ export const ProjectView = ({ projectId }: Props) => {
 
                         <TabsContent
                             value="preview"
-                            className="m-0 min-h-0 flex-1 overflow-hidden rounded-2xl border-[1.5px] border-foreground bg-card data-[state=inactive]:hidden"
+                            className="m-0 min-h-0 flex-1 overflow-hidden rounded-2xl bg-card shadow-float data-[state=inactive]:hidden"
                         >
                             {activeFragment ? (
                                 <FragmentWeb data={activeFragment} />
@@ -157,7 +157,7 @@ export const ProjectView = ({ projectId }: Props) => {
 
                         <TabsContent
                             value="code"
-                            className="m-0 min-h-0 flex-1 overflow-hidden rounded-2xl border-[1.5px] border-foreground bg-card data-[state=inactive]:hidden"
+                            className="m-0 min-h-0 flex-1 overflow-hidden rounded-2xl bg-card shadow-float data-[state=inactive]:hidden"
                         >
                             {activeFragment?.files ? (
                                 <FileExplorer

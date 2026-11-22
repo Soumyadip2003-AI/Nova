@@ -48,7 +48,7 @@ export const Usage = ({ points, msBeforeNext, plan = "FREE", totalCredits }: Pro
     return(
         <div
             className={cn(
-                "mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px] px-3 py-2 text-sm",
+                "mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl px-3.5 py-2.5 text-sm",
                 isOutOfCredits ? "bg-destructive-soft" : "bg-muted"
             )}
         >
@@ -58,17 +58,17 @@ export const Usage = ({ points, msBeforeNext, plan = "FREE", totalCredits }: Pro
                     You have run out of credits
                 </p>
             ) : (
-                <p className="font-mono text-xs">
-                    {isPro && <span className="mr-2 font-sans font-semibold">Pro</span>}
+                <p className="text-xs font-medium">
+                    {isPro && <span className="mr-2 font-bold">Pro</span>}
                     {totalCredits != null ? `${points} of ${totalCredits}` : points}
                     {" "}credit{(totalCredits ?? points) !== 1 ? "s" : ""} left
                 </p>
             )}
-            <p className="font-mono text-xs text-muted-foreground">Resets in {resetsIn}</p>
+            <p className="text-xs text-muted-foreground">Resets in {resetsIn}</p>
             {!isPro && (
                 <Link
                     href="/pricing"
-                    className="ml-auto inline-flex h-8 items-center rounded-[10px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="ml-auto inline-flex h-8 items-center rounded-full bg-primary px-3.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                     Get more
                 </Link>

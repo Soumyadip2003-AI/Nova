@@ -50,11 +50,11 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
   const item = (model: ModelInfo) => {
     const locked = !isPro && model.tier === "pro";
     return (
-      <SelectItem key={model.id} value={model.id} disabled={locked} className="rounded-[10px]">
+      <SelectItem key={model.id} value={model.id} disabled={locked} className="rounded-xl">
         <span className="flex items-center gap-2">
           <span>{model.name}</span>
           {model.tier === "pro" && (
-            <span className="flex items-center gap-1 rounded-md border border-border px-1.5 py-px font-mono text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1 rounded-full bg-accent px-1.5 py-px text-[11px] font-bold text-accent-foreground text-muted-foreground">
               <CrownIcon className="size-3" aria-hidden />
               {locked ? "Pro only" : "Pro"}
             </span>
@@ -79,7 +79,7 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
         aria-label={id ? undefined : "AI model"}
         size="sm"
         className={cn(
-          "h-9 gap-1.5 rounded-[10px] border-[1.5px] border-foreground bg-card text-sm text-foreground shadow-none",
+          "h-8 gap-1.5 rounded-full border-0 bg-muted px-3 text-[13px] font-medium text-foreground shadow-none",
           "hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
           className
         )}
@@ -94,7 +94,7 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
           </span>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent align="start" className="rounded-2xl border-[1.5px] border-foreground">
+      <SelectContent align="start" className="rounded-2xl border border-border">
         {standardModels.length > 0 && (
           <SelectGroup>
             <SelectLabel className={groupLabel}>

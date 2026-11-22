@@ -15,7 +15,7 @@ interface UserMessageProps {
 const UserMessage = ({ content }: UserMessageProps) => {
     return (
         <div className="flex justify-end pb-4 pl-10">
-            <div className="max-w-[85%] rounded-xl bg-primary px-3.5 py-2.5 text-primary-foreground">
+            <div className="max-w-[85%] rounded-[18px] rounded-br-md bg-muted px-3.5 py-2.5 text-foreground">
                 <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                     {content}
                 </p>
@@ -36,15 +36,15 @@ const FragmentCard = ({ fragment, isActiveFragment, onFragmentClick }: FragmentC
             type="button"
             aria-current={isActiveFragment ? "true" : undefined}
             className={cn(
-                "flex w-full items-center gap-3 rounded-[10px] border-[1.5px] bg-card px-3 py-2.5 text-left transition-colors",
+                "flex w-full items-center gap-3 rounded-2xl border bg-card px-3 py-2.5 text-left transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isActiveFragment
-                    ? "border-foreground shadow-stamp-sm"
-                    : "border-border hover:border-foreground"
+                    ? "border-transparent shadow-float ring-2 ring-[var(--nova-violet)]/40"
+                    : "border-border hover:bg-muted"
             )}
             onClick={() => onFragmentClick(fragment)}
         >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
                 <Code2Icon className="size-4" aria-hidden />
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
@@ -88,7 +88,7 @@ const AssistantMessage = ({
     return (
         <div className="flex flex-col gap-3 pb-5">
             {isError ? (
-                <div className="flex items-start gap-2.5 rounded-[10px] bg-destructive-soft px-3 py-2.5 text-[15px] leading-relaxed">
+                <div className="flex items-start gap-2.5 rounded-2xl bg-destructive-soft px-3.5 py-2.5 text-[15px] leading-relaxed">
                     <AlertCircleIcon className="mt-1 size-4 shrink-0 text-destructive" aria-hidden />
                     <p className="min-w-0 break-words">
                         <span className="font-semibold">Something went wrong. </span>
@@ -99,10 +99,10 @@ const AssistantMessage = ({
                 <div className={cn(
                     "prose prose-sm max-w-none text-[15px] text-foreground",
                     "prose-p:my-2 prose-p:leading-relaxed",
-                    "prose-headings:my-3 prose-headings:font-display prose-headings:font-bold prose-headings:text-foreground prose-strong:text-foreground",
+                    "prose-headings:my-3 prose-headings:prose-headings:font-bold prose-headings:text-foreground prose-strong:text-foreground",
                     "prose-li:marker:text-muted-foreground prose-hr:border-border prose-th:border-border prose-td:border-border",
                     "prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5",
-                    "prose-pre:bg-muted prose-pre:text-foreground prose-pre:border prose-pre:border-border prose-pre:rounded-[10px]",
+                    "prose-pre:bg-muted prose-pre:text-foreground prose-pre:border prose-pre:border-border prose-pre:rounded-xl",
                     "prose-code:font-mono prose-code:font-medium prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none",
                     "prose-a:text-foreground prose-a:underline prose-a:underline-offset-2",
                     "prose-blockquote:border-l-border prose-blockquote:text-muted-foreground",
@@ -124,7 +124,7 @@ const AssistantMessage = ({
             <div className="flex items-center gap-3">
                 <time
                     dateTime={new Date(createdAt).toISOString()}
-                    className="font-mono text-xs text-muted-foreground"
+                    className="text-xs text-muted-foreground"
                 >
                     {format(new Date(createdAt), "HH:mm, MMM d")}
                 </time>
@@ -133,7 +133,7 @@ const AssistantMessage = ({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 gap-1.5 rounded-[10px] px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                        className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={handleCopy}
                     >
                         {copied ? <CheckIcon className="size-3.5" aria-hidden /> : <CopyIcon className="size-3.5" aria-hidden />}

@@ -25,7 +25,7 @@ interface Props {
     projectId: string;
 }
 
-const iconTile = "flex size-8 items-center justify-center rounded-[10px] bg-muted";
+const iconTile = "flex size-8 items-center justify-center rounded-xl bg-muted";
 
 export const ProjectHeader = ({ projectId }: Props) => {
     const trpc = useTRPC();
@@ -55,10 +55,10 @@ export const ProjectHeader = ({ projectId }: Props) => {
                 <DropdownMenuTrigger asChild>
                     <button
                         type="button"
-                        className="group flex min-w-0 items-center gap-2.5 rounded-[10px] px-1.5 py-1 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="group flex min-w-0 items-center gap-2.5 rounded-xl px-1.5 py-1 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                        <Logo size={26} />
-                        <span className="truncate font-display text-lg font-bold max-w-[6rem] sm:max-w-[16rem]">
+                        <Logo size={22} />
+                        <span className="truncate text-base font-bold tracking-[-0.02em] max-w-[6rem] sm:max-w-[16rem]">
                             {project.name}
                         </span>
                         <ChevronDownIcon
@@ -72,9 +72,9 @@ export const ProjectHeader = ({ projectId }: Props) => {
                 <DropdownMenuContent
                     side="bottom"
                     align="start"
-                    className="w-60 rounded-2xl border-[1.5px] border-foreground p-1.5"
+                    className="w-60 rounded-2xl border border-border p-1.5"
                 >
-                    <DropdownMenuItem asChild className="cursor-pointer gap-3 rounded-[10px] py-2">
+                    <DropdownMenuItem asChild className="cursor-pointer gap-3 rounded-xl py-2">
                         <Link href="/">
                             <span className={iconTile}>
                                 <ChevronLeftIcon className="size-4" aria-hidden />
@@ -89,7 +89,7 @@ export const ProjectHeader = ({ projectId }: Props) => {
                     <DropdownMenuSeparator />
 
                     <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="gap-3 rounded-[10px] py-2">
+                        <DropdownMenuSubTrigger className="gap-3 rounded-xl py-2">
                             <span className={iconTile}>
                                 {theme === "dark" ? (
                                     <MoonIcon className="size-4" aria-hidden />
@@ -107,17 +107,17 @@ export const ProjectHeader = ({ projectId }: Props) => {
                             </span>
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
-                            <DropdownMenuSubContent className="rounded-2xl border-[1.5px] border-foreground p-1.5">
+                            <DropdownMenuSubContent className="rounded-2xl border border-border p-1.5">
                                 <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                                    <DropdownMenuRadioItem value="light" className="gap-2 rounded-[10px] py-2">
+                                    <DropdownMenuRadioItem value="light" className="gap-2 rounded-xl py-2">
                                         <SunIcon className="size-4" aria-hidden />
                                         <span>Light</span>
                                     </DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="dark" className="gap-2 rounded-[10px] py-2">
+                                    <DropdownMenuRadioItem value="dark" className="gap-2 rounded-xl py-2">
                                         <MoonIcon className="size-4" aria-hidden />
                                         <span>Dark</span>
                                     </DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="system" className="gap-2 rounded-[10px] py-2">
+                                    <DropdownMenuRadioItem value="system" className="gap-2 rounded-xl py-2">
                                         <MonitorIcon className="size-4" aria-hidden />
                                         <span>System</span>
                                     </DropdownMenuRadioItem>
