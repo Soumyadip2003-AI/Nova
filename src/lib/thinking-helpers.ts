@@ -20,7 +20,7 @@ export const ERROR_MESSAGES: Record<ThinkingErrorType, (details?: string) => str
     [ThinkingErrorType.AGENT_ERROR]: (details) =>
         details ? `An error occurred: ${details}` : "An error occurred while processing your request. Please try again.",
     [ThinkingErrorType.CANCELLED]: () =>
-        "The task was cancelled.",
+        "Stopped. This build was cancelled.",
     [ThinkingErrorType.UNKNOWN]: () =>
         "Something went wrong. Please try again."
 };

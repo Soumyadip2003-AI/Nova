@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { AlertCircleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDuration, intervalToDuration } from "date-fns";
-import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { useMemo } from "react";
 
 interface Props{
     points: number;
@@ -18,32 +18,11 @@ export const Usage = ({ points, msBeforeNext, plan = "FREE", totalCredits }: Pro
     const isPro = plan === "PRO";
 
     // Calculate the reset date - update when msBeforeNext changes
-    const [resetDate, setResetDate] = useState(() => new Date(Date.now() + msBeforeNext));
+    const resetDate = useMemo(() => new Date(Date.now() + msBeforeNext), [msBeforeNext]);
 
-    // State to force re-render every second for live countdown
-    const [now, setNow] = useState(new Date());
-
-    // Update resetDate when msBeforeNext changes (e.g., after refetch)
-    useEffect(() => {
-        setResetDate(new Date(Date.now() + msBeforeNext));
-    }, [msBeforeNext]);
-
-    // Update 'now' every second to make countdown live
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setNow(new Date());
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    const resetsIn = formatDuration(
-        intervalToDuration({
-            start: now,
-            end: resetDate,
-        }),
-        {format:["days","hours","minutes","seconds"]}
-    );
+    // Show the reset as a date: a live seconds counter is noise, and a rounded
+    // duration ("2 months") was misleading.
+    const resetsOn = format(resetDate, "d MMM");
 
     return(
         <div
@@ -64,7 +43,7 @@ export const Usage = ({ points, msBeforeNext, plan = "FREE", totalCredits }: Pro
                     {" "}credit{(totalCredits ?? points) !== 1 ? "s" : ""} left
                 </p>
             )}
-            <p className="text-xs text-muted-foreground">Resets in {resetsIn}</p>
+            <p className="text-xs text-muted-foreground">Resets on {resetsOn}</p>
             {!isPro && (
                 <Link
                     href="/pricing"

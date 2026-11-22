@@ -91,7 +91,8 @@ const AssistantMessage = ({
                 <div className="flex items-start gap-2.5 rounded-2xl bg-destructive-soft px-3.5 py-2.5 text-[15px] leading-relaxed">
                     <AlertCircleIcon className="mt-1 size-4 shrink-0 text-destructive" aria-hidden />
                     <p className="min-w-0 break-words">
-                        <span className="font-semibold">Something went wrong. </span>
+                        {/* A stop the user asked for is not a failure. */}
+                        {!/cancelled/i.test(content ?? "") && <span className="font-semibold">Something went wrong. </span>}
                         {content}
                     </p>
                 </div>

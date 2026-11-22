@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { inngest } from "./client";
+import { NonRetriableError } from "inngest";
 import {  openai, createAgent, createTool, createNetwork, createState, type Tool } from "@inngest/agent-kit";
 import { Sandbox} from "@e2b/code-interpreter"
 import { verifySandbox, repairPrompt } from "./verify";
@@ -30,9 +31,16 @@ interface AgentState{
 
 
 
+// Marker for the consume step's failure, so onFailure knows nothing was charged.
+const CONSUME_FAILED = "Failed to consume credits";
+
 export const codeAgentFunction = inngest.createFunction(
   {
     id: "code-agent",
+    // One retry, not Inngest's default of several with growing waits: a
+    // request the model rejects will not start working, and the user waited
+    // 20+ minutes on a spinner before the build was finally reported failed.
+    retries: 1,
     cancelOn: [
       {
         event: "code-agent/cancel",
@@ -56,8 +64,10 @@ export const codeAgentFunction = inngest.createFunction(
           return;
         }
 
-        // Refund credits if they were consumed before the failure
-        if (userId) {
+        // Refund only if the credit was actually taken: a failure in the
+        // consume step itself means the user was never charged.
+        const creditWasTaken = !error.message?.includes(CONSUME_FAILED);
+        if (userId && creditWasTaken) {
           try {
             const { refundCreditsForUser } = await import("@/lib/usage");
             await refundCreditsForUser(userId);
@@ -133,7 +143,8 @@ export const codeAgentFunction = inngest.createFunction(
         console.log("✓ Credits consumed upfront before generation");
       } catch (error) {
         console.error("✗ Failed to consume credits before generation:", error);
-        throw new Error("Failed to consume credits. Please try again.");
+        // Not retryable: running out of credits will not fix itself.
+        throw new NonRetriableError(`${CONSUME_FAILED}. Please try again.`);
       }
     });
 
@@ -146,8 +157,9 @@ export const codeAgentFunction = inngest.createFunction(
       return project?.name || "Fragment";
     });
 
+    // Failures here are retried by Inngest; cleanup and the refund happen once,
+    // in onFailure, instead of on every attempt.
     const sandboxId = await step.run("get-sandbox-id",async ()=>{
-      try {
         await addThinkingStep(
           thinkingMessage.id,
           "Setting up environment",
@@ -192,16 +204,6 @@ export const codeAgentFunction = inngest.createFunction(
         // Complete immediately after sandbox is created
         await completeCurrentThinkingStep(thinkingMessage.id);
         return sandbox.sandboxId;
-      } catch (error) {
-        // Cleanup with specific sandbox error type
-        await cleanupThinkingMessageWithError(
-          thinkingMessage.id,
-          event.data.projectId,
-          ThinkingErrorType.SANDBOX_SETUP,
-          error instanceof Error ? error.message : undefined
-        );
-        throw error; // Re-throw to stop execution
-      }
     });
 
 
@@ -213,7 +215,14 @@ export const codeAgentFunction = inngest.createFunction(
       model: openai({
         model: selectedModel,
         // Reasoning-era models (o1, GPT-5 and later) reject a custom temperature.
-        defaultParameters: supportsTemperature(selectedModel) ? { temperature: 0.1 } : {},
+        // GPT-4 models take a custom temperature. Newer reasoning-era models
+        // (o1, GPT-5, GPT-6) reject it, and reject parallel_tool_calls, which
+        // agent-kit adds for every model except o1/o3: the result was an
+        // HTTP 400 on every build. These parameters are merged into the
+        // request last, and an undefined value drops the field from the body.
+        defaultParameters: supportsTemperature(selectedModel)
+          ? { temperature: 0.1 }
+          : { parallel_tool_calls: undefined },
       }),
       tools:[
         createTool({
@@ -589,7 +598,9 @@ export const codeAgentFunction = inngest.createFunction(
           },
         });
       });
-      throw error; // Re-throw to ensure Inngest marks it as failed and triggers onFailure
+      // Refund and the error message are done above. Re-throwing would make
+      // onFailure refund and report a second time.
+      return { error: error instanceof Error ? error.message : "Unknown error" };
     }
   },
 );
