@@ -123,7 +123,7 @@ export const codeAgentFunction = inngest.createFunction(
     const selectedModel = event.data.model || "gpt-4o-mini";
 
     // Check if this is a reasoning model (o1 family)
-    const { isReasoningModel, supportsTemperature } = await import("@/lib/models");
+    const { isReasoningModel, agentParameters } = await import("@/lib/models");
     const useReasoningModel = isReasoningModel(selectedModel);
 
     // Create thinking message to track progress
@@ -218,14 +218,8 @@ export const codeAgentFunction = inngest.createFunction(
         // Through Nova's pass-through so OpenAI's error text is logged.
         baseUrl: `${SITE.url}/api/ai/openai/`,
         // Reasoning-era models (o1, GPT-5 and later) reject a custom temperature.
-        // GPT-4 models take a custom temperature. Newer reasoning-era models
-        // (o1, GPT-5, GPT-6) reject it, and reject parallel_tool_calls, which
-        // agent-kit adds for every model except o1/o3: the result was an
-        // HTTP 400 on every build. These parameters are merged into the
-        // request last, and an undefined value drops the field from the body.
-        defaultParameters: supportsTemperature(selectedModel)
-          ? { temperature: 0.1 }
-          : { parallel_tool_calls: undefined },
+        // Per-model parameters: GPT-5/6 need reasoning_effort "none" to use tools.
+        defaultParameters: agentParameters(selectedModel),
       }),
       tools:[
         createTool({

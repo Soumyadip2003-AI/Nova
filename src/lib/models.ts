@@ -118,3 +118,19 @@ export const REASONING_MODELS: ModelId[] = ["o1", "o1-mini"];
 export function supportsTemperature(modelId: string): boolean {
   return modelId.startsWith("gpt-4");
 }
+
+/**
+ * Extra request parameters for the build agent, per model family.
+ * - GPT-4: a low temperature for steady code.
+ * - GPT-5 and GPT-6: OpenAI rejects function tools in chat completions unless
+ *   reasoning_effort is "none" ("Function tools with reasoning_effort are not
+ *   supported ... set reasoning_effort to 'none'"), and the agent needs tools.
+ * - o1: no custom temperature, no parallel_tool_calls.
+ * parallel_tool_calls: undefined removes the field agent-kit adds, since
+ * reasoning models reject it.
+ */
+export function agentParameters(modelId: string): Record<string, unknown> {
+  if (supportsTemperature(modelId)) return { temperature: 0.1 };
+  if (/^gpt-(5|6)/.test(modelId)) return { reasoning_effort: "none", parallel_tool_calls: undefined };
+  return { parallel_tool_calls: undefined };
+}
