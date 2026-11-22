@@ -82,14 +82,38 @@ export async function verifySandbox(sandboxId: string, changed: string[]): Promi
   const pageIssue = pageProblem(Number(statusLine.trim()) || 0, rest.join("\n"));
   if (pageIssue) problems.push(pageIssue);
 
+  // Full-stack apps: each API route the agent wrote must answer GET without a
+  // server error (405 for POST-only routes is fine).
+  for (const route of apiRoutesFor(changed).slice(0, 8)) {
+    const out = await run(`curl -s -m 20 -o /tmp/nova-api.txt -w '%{http_code}' http://localhost:3000${route}; echo; head -c 400 /tmp/nova-api.txt`, 30_000);
+    const [code = "", ...body] = out.trimStart().split("\n");
+    const status = Number(code.trim()) || 0;
+    if (status === 0 || status >= 500) {
+      problems.push(`GET ${route} ${status ? `returns HTTP ${status}` : "did not respond"}${body.join(" ").trim() ? `: ${body.join(" ").replace(/\s+/g, " ").trim().slice(0, 300)}` : ""}`);
+    }
+  }
+
   return { ok: problems.length === 0, problems };
+}
+
+/** URL paths of the static API routes among the changed files (dynamic [id] routes are skipped). */
+export function apiRoutesFor(changed: string[]): string[] {
+  return changed
+    .map((f) => f.replace(/^\.?\//, "").match(/^(?:src\/)?app\/(api\/.*?)\/?route\.(?:ts|js)$/)?.[1])
+    .filter((p): p is string => !!p && !p.includes("["))
+    .map((p) => `/${p.replace(/\([^)]*\)\//g, "").replace(/\/$/, "")}`);
 }
 
 /** Source files named in tsc problem lines, e.g. "app/layout.tsx(3,1): error ...". */
 export function problemFiles(problems: string[]): string[] {
   const files = problems
-    .map((p) => p.match(/^([\w./@-]+\.(?:tsx?|jsx?))\(\d+,\d+\)/)?.[1])
-    .filter((f): f is string => Boolean(f));
+    .flatMap((p) => {
+      const tsFile = p.match(/^([\w./@-]+\.(?:tsx?|jsx?))\(\d+,\d+\)/)?.[1];
+      if (tsFile) return [tsFile];
+      // A failing API route: its handler, and the database module it most likely uses.
+      const route = p.match(/^GET (\/api\/[\w/-]+)/)?.[1];
+      return route ? [`app${route}/route.ts`, "lib/db.ts"] : [];
+    });
   return [...new Set(files)].slice(0, 5);
 }
 

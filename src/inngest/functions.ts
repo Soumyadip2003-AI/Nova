@@ -6,6 +6,9 @@ import {  openai, createAgent, createTool, createNetwork, createState, type Tool
 import { Sandbox} from "@e2b/code-interpreter"
 import { verifySandbox, repairPrompt, problemFiles, readSandboxFiles } from "./verify";
 import { getSandbox, lastAssistantTextMessageContent } from "./utils";
+import { buildDesignBrief, promptWithBrief } from "./design-brief";
+import { installDependencies, writeProjectAssets } from "@/lib/project-files";
+import { attachmentsSchema } from "@/lib/attachments";
 /** A command as one readable line for the thinking log. */
 const shortCommand = (cmd: string) => {
   const line = cmd.trim().split("\n")[0];
@@ -28,6 +31,8 @@ import {
 interface AgentState{
   summary:string;
   files:{[path:string]:string};
+  /** Set when the agent installed packages, so package.json is saved with the version. */
+  dependenciesChanged?: boolean;
 };
 
 
@@ -200,7 +205,11 @@ export const codeAgentFunction = inngest.createFunction(
           for (const [path, content] of Object.entries(files)) {
             await sandbox.files.write(path, content);
           }
+          // A full-stack app saves its package.json; its packages are not in the template.
+          await installDependencies(sandbox, files);
         }
+        // The user's uploaded images, so the app can use them (/uploads/...).
+        await writeProjectAssets(sandbox, event.data.projectId);
 
         // Complete immediately after sandbox is created
         await completeCurrentThinkingStep(thinkingMessage.id);
@@ -228,12 +237,18 @@ export const codeAgentFunction = inngest.createFunction(
           parameters: z.object({
             command: z.string(),
           }),
-          handler: async ({command},{step})=>{
+          handler: async ({command},{step, network})=>{
+            // Installing packages changes package.json, which the saved version must then include.
+            if (network && /\b(npm (i|install|add)|pnpm add|yarn add)\b/.test(command)) {
+              network.state.data.dependenciesChanged = true;
+            }
             return await step?.run("terminal", async()=> {
               const buffers ={stdout: "", stderr: ""};
               try{
                 const sandbox= await getSandbox(sandboxId);
                 const result= await sandbox.commands.run(command ,{
+                 // E2B's default is 60s; installing a database driver can take longer.
+                 timeoutMs: 180_000,
                  onStdout: (data: string) =>{
                   buffers.stdout+= data;
                  },
@@ -357,6 +372,33 @@ export const codeAgentFunction = inngest.createFunction(
     });
 
     try {
+      // Design references (uploads and links) become a written brief the
+      // agent follows. If they cannot be read, the build goes on from the words.
+      let agentInput: string = event.data.value;
+      const references = attachmentsSchema.safeParse(event.data.attachments ?? []);
+      if (references.success && references.data.length) {
+        const design = await step.run("study-references", async () => {
+          await addThinkingStep(thinkingMessage.id, "Studying your references");
+          try {
+            const { getUsageStatusForUser } = await import("@/lib/usage");
+            const isPro = (await getUsageStatusForUser(event.data.userId)).plan === "PRO";
+            return await buildDesignBrief({
+              prompt: event.data.value,
+              attachments: references.data,
+              isPro,
+              log: (line) => appendThinkingLog(thinkingMessage.id, line),
+            });
+          } catch (error) {
+            console.error("Design brief failed:", error);
+            await appendThinkingLog(thinkingMessage.id, "Could not study the references; building from your description");
+            return null;
+          } finally {
+            await completeCurrentThinkingStep(thinkingMessage.id);
+          }
+        });
+        if (design?.brief) agentInput = promptWithBrief(event.data.value, design);
+      }
+
       // Add thinking step before agent starts - different messaging for reasoning models
       await step.run("start-generation", async () => {
         const { getModelInfo, supportsEffort, EFFORT_LABELS, DEFAULT_EFFORT } = await import("@/lib/models");
@@ -372,7 +414,7 @@ export const codeAgentFunction = inngest.createFunction(
 
       // Run the agent network - this is the long-running operation
       console.log("Starting agent network run with input:", event.data.value.substring(0, 100));
-      let result = await network.run(event.data.value);
+      let result = await network.run(agentInput);
 
       // Self-healing: check the code like a developer would (TypeScript, and
       // the running app's home page) and hand any problems back to the agent,
@@ -458,6 +500,28 @@ export const codeAgentFunction = inngest.createFunction(
       console.log("file count:", Object.keys(files).length);
       console.log("file paths:", Object.keys(files));
       console.log("=================");
+
+      // A version is the whole project: the last version's files plus this
+      // run's changes (and package.json when packages were installed). Saving
+      // only this run's files dropped everything else from the next build,
+      // from restarted previews and from the Code tab.
+      const dependenciesChanged = !!result.state.data.dependenciesChanged;
+      const projectFiles = await step.run("collect-files", async () => {
+        const last = await prisma.fragment.findFirst({
+          where: { message: { projectId: event.data.projectId } },
+          orderBy: { createdAt: "desc" },
+          select: { files: true },
+        });
+        const merged: Record<string, string> = { ...((last?.files as Record<string, string> | undefined) ?? {}), ...files };
+        if (dependenciesChanged) {
+          try {
+            merged["package.json"] = await (await getSandbox(sandboxId)).files.read("package.json");
+          } catch (error) {
+            console.error("Could not read package.json:", error);
+          }
+        }
+        return merged;
+      });
 
       const sandboxUrl = await step.run("get-sandbox-url", async () => {
         await addThinkingStep(
@@ -571,7 +635,7 @@ export const codeAgentFunction = inngest.createFunction(
                 create: {
                   sandboxUrl: sandboxUrl,
                   title: fragmentTitle,
-                  files: files,
+                  files: projectFiles,
                 },
               }
             }

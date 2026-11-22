@@ -8,6 +8,7 @@ import { createThinkingMessage, deleteThinkingMessage } from "@/lib/thinking-hel
 import { TRPCError } from "@trpc/server";
 import { after } from "next/server";
 import { EFFORTS } from "@/lib/models";
+import { attachmentProblem, attachmentsSchema } from "@/lib/attachments";
 
 export const messagesRouter = createTRPCRouter({
     getMany:protectedProcedure
@@ -41,6 +42,7 @@ export const messagesRouter = createTRPCRouter({
                 .max(10000, { message: "Value is too long" }),
                 projectId: z.string().min(1, { message: "Project ID is required" }),
                 effort: z.enum(EFFORTS).optional(),
+                attachments: attachmentsSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -76,8 +78,13 @@ export const messagesRouter = createTRPCRouter({
                 data: { updatedAt: new Date() },
             });
 
-            // Check if this is a question or a code generation request
-            const isQuestion = isDefinitelyQuestion(input.value);
+            const attachments = input.attachments ?? [];
+            const attachmentIssue = attachmentProblem(attachments, ctx.auth.userId, isPro ? "PRO" : "FREE");
+            if (attachmentIssue) throw new TRPCError({ code: "BAD_REQUEST", message: attachmentIssue });
+
+            // Check if this is a question or a code generation request. References
+            // are sent to build with, so a message carrying them is always a build.
+            const isQuestion = !attachments.length && isDefinitelyQuestion(input.value);
 
             if (isQuestion) {
                 // Check and consume credits BEFORE processing
@@ -182,6 +189,7 @@ export const messagesRouter = createTRPCRouter({
                     content: input.value,
                     role: "USER",
                     type: "RESULT",
+                    ...(attachments.length ? { attachments } : {}),
                 },
             });
 
@@ -194,6 +202,7 @@ export const messagesRouter = createTRPCRouter({
                         userId: ctx.auth.userId,
                         model: projectModel,
                         effort: input.effort,
+                        attachments,
                     }
                 });
             } catch (error) {

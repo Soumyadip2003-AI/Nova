@@ -95,6 +95,7 @@ export const MessagesContainer = ({ projectId, activeFragment, setActiveFragment
                             <MessageCard
                                 key={message.id}
                                 content={message.content ?? ""}
+                                attachments={message.attachments}
                                 role={message.role}
                                 fragment={message.fragment}
                                 createdAt={message.createdAt}

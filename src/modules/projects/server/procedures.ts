@@ -1,4 +1,5 @@
 import { EFFORTS } from "@/lib/models";
+import { attachmentProblem, attachmentsSchema } from "@/lib/attachments";
 import { inngest } from "@/inngest/client";
 import { prisma } from "@/lib/db";
 import { protectedProcedure, createTRPCRouter } from "@/trpc/init";
@@ -56,6 +57,7 @@ export const projectsRouter = createTRPCRouter({
                 .max(10000, { message: "Value is too long" }),
                 model: z.string().optional(),
                 effort: z.enum(EFFORTS).optional(),
+                attachments: attachmentsSchema.optional(),
             }),
         )
         .mutation(async ({ input ,ctx}) => {
@@ -73,6 +75,9 @@ export const projectsRouter = createTRPCRouter({
 
             // Validate and determine model based on user plan
             const isPro = usageStatus.plan === "PRO";
+            const attachments = input.attachments ?? [];
+            const attachmentIssue = attachmentProblem(attachments, ctx.auth.userId, isPro ? "PRO" : "FREE");
+            if (attachmentIssue) throw new TRPCError({ code: "BAD_REQUEST", message: attachmentIssue });
             let selectedModel = input.model;
             if (!selectedModel || !isModelAvailable(selectedModel, isPro)) {
                 selectedModel = getDefaultModel(isPro);
@@ -93,6 +98,7 @@ export const projectsRouter = createTRPCRouter({
                             content: input.value,
                             role: "USER",
                             type: "RESULT",
+                            ...(attachments.length ? { attachments } : {}),
                         },
                     },
                 },
@@ -107,6 +113,7 @@ export const projectsRouter = createTRPCRouter({
                         userId: ctx.auth.userId,
                         model: selectedModel,
                         effort: input.effort,
+                        attachments,
                     }
                 });
             } catch (error) {
@@ -144,12 +151,18 @@ export const projectsRouter = createTRPCRouter({
                 });
             }
 
+            const { projectUploadPathnames, deleteUploads } = await import("@/lib/project-files");
+            const uploads = await projectUploadPathnames(input.id);
+
             await prisma.project.delete({
                 where: {
                     id: input.id,
                     userId: ctx.auth.userId,
                 },
             });
+
+            // The project's uploaded references go with it (Privacy Policy, section 4).
+            await deleteUploads(uploads).catch((error) => console.error("Could not delete project uploads:", error));
 
             return { success: true };
         }),
@@ -172,6 +185,7 @@ export const projectsRouter = createTRPCRouter({
         .mutation(async ({ input, ctx }) => {
             const fragment = await prisma.fragment.findFirst({
                 where: { id: input.fragmentId, message: { project: { userId: ctx.auth.userId } } },
+                include: { message: { select: { projectId: true } } },
             });
             if (!fragment) throw new TRPCError({ code: "NOT_FOUND", message: "Version not found" });
 
@@ -182,7 +196,7 @@ export const projectsRouter = createTRPCRouter({
 
             const { getUsageStatus } = await import("@/lib/usage");
             const isPro = (await getUsageStatus()).plan === "PRO";
-            const sandboxUrl = await startPreview(fragment.files as Record<string, string>, isPro);
+            const sandboxUrl = await startPreview(fragment.files as Record<string, string>, isPro, fragment.message.projectId);
             return prisma.fragment.update({ where: { id: fragment.id }, data: { sandboxUrl } });
         }),
     updateModel: protectedProcedure

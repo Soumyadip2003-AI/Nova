@@ -15,7 +15,7 @@ const PROCESSORS = [
     ["E2B", "The temporary cloud sandboxes that run your app"],
     ["Inngest", "Running each build step by step in the background"],
     ["Neon", "The database that stores your projects and messages"],
-    ["Vercel", "Hosting the Nova website and its server functions"],
+    ["Vercel", "Hosting the Nova website and its server functions, and private storage (Vercel Blob) for files you upload"],
 ];
 
 const Page = () => (
@@ -34,6 +34,11 @@ const Page = () => (
             <li>
                 <strong>What you create:</strong> your prompts, chat messages, the code and files Nova generates, project names, and
                 the build log for each version.
+            </li>
+            <li>
+                <strong>Design references you add:</strong> screenshots, still frames from screen recordings (the recording itself is
+                not uploaded; your browser takes the frames), PDFs, text and code files, and links. Do not upload anything that
+                contains other people&apos;s personal data or secrets.
             </li>
             <li>
                 <strong>Plan and usage:</strong> your plan, remaining credits and when they reset, and the AI model you chose.
@@ -69,7 +74,8 @@ const Page = () => (
             ))}
         </ul>
         <p>
-            Your prompts and code are sent to OpenAI to generate your app. Under OpenAI&apos;s API terms, data sent through the API is
+            Your prompts, code and design references are sent to OpenAI to generate your app; when you add a link, our server
+            visits that page to read its design. Under OpenAI&apos;s API terms, data sent through the API is
             not used to train their models by default. Some providers store data outside India; we use providers that protect data
             under contract. We may also disclose data if the law requires it.
         </p>
@@ -77,6 +83,10 @@ const Page = () => (
         <h2>4. How long we keep it</h2>
         <ul>
             <li>Projects, messages and code: until you delete the project or your account.</li>
+            <li>
+                Uploaded files: until you remove them before sending, or delete the project or your account. Links you add are read
+                when you send them; we keep only the address.
+            </li>
             <li>Sandboxes: deleted automatically when they time out, within minutes.</li>
             <li>Account and plan records: while your account exists.</li>
             <li>Payment records: as long as tax and accounting law requires.</li>

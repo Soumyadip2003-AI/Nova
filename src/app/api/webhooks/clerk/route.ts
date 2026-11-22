@@ -60,6 +60,9 @@ export async function POST(request: NextRequest) {
         prisma.project.deleteMany({ where: { userId: deletedId } }),
         prisma.usage.deleteMany({ where: { key: deletedId } }),
       ]);
+      // Uploaded design references, including ones never sent.
+      const { deleteUserUploads } = await import("@/lib/project-files");
+      await deleteUserUploads(deletedId).catch((error) => console.error("Could not delete user uploads:", error));
     }
     return NextResponse.json({ received: true });
   }

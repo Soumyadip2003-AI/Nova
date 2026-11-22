@@ -7,14 +7,17 @@ import { ChevronRightIcon, Code2Icon, CopyIcon, CheckIcon, AlertCircleIcon } fro
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { MessageAttachments } from "@/components/attachments";
 
 interface UserMessageProps {
     content: string;
+    attachments?: unknown;
 }
 
-const UserMessage = ({ content }: UserMessageProps) => {
+const UserMessage = ({ content, attachments }: UserMessageProps) => {
     return (
-        <div className="flex justify-end pb-4 pl-10">
+        <div className="flex flex-col items-end gap-2 pb-4 pl-10">
+            <MessageAttachments attachments={attachments} />
             <div className="max-w-[85%] rounded-[18px] rounded-br-md bg-muted px-3.5 py-2.5 text-foreground">
                 <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                     {content}
@@ -148,6 +151,7 @@ const AssistantMessage = ({
 
 interface MessageCardProps {
     content: string;
+    attachments?: unknown;
     role: MessageRole;
     fragment: Fragment | null;
     createdAt: Date;
@@ -158,6 +162,7 @@ interface MessageCardProps {
 
 export const MessageCard = ({
     content,
+    attachments,
     role,
     fragment,
     createdAt,
@@ -178,5 +183,5 @@ export const MessageCard = ({
         );
     }
 
-    return <UserMessage content={content} />;
+    return <UserMessage content={content} attachments={attachments} />;
 };

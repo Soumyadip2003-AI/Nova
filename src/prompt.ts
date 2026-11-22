@@ -78,13 +78,24 @@ Additional Guidelines:
 - Always import each Shadcn component directly from its correct path (e.g. @/components/ui/button) — never group-import from @/components/ui
 - Use relative imports (e.g., "./weather-card") for your own components in app/
 - Follow React best practices: semantic HTML, ARIA where needed, clean useState/useEffect usage
-- Use only static/local data (no external APIs)
+- No external APIs, third-party services or API keys: everything runs inside this app
 - Responsive and accessible by default
-- Do not use local or external image URLs — instead rely on emojis and divs with proper aspect ratios (aspect-video, aspect-square, etc.) and color placeholders (e.g. bg-gray-200)
+- Do not use external image URLs — rely on the user's uploaded images (paths under /uploads/ given in the request, used with a plain <img> tag) or on emojis and divs with proper aspect ratios (aspect-video, aspect-square, etc.) and color placeholders (e.g. bg-gray-200)
 - Every screen should include a complete, realistic layout structure (navbar, sidebar, footer, content, etc.) — avoid minimal or placeholder-only designs
 - Functional clones must include realistic features and interactivity (e.g. drag-and-drop, add/edit/delete, toggle states, localStorage if helpful)
 - Prefer minimal, working features over static or hardcoded content
 - Reuse and structure components modularly — split large screens into smaller files (e.g., Column.tsx, TaskCard.tsx, etc.) and import them
+
+Full-stack apps (backend and database):
+Decide what the app needs. A landing page, portfolio or single-screen tool stays front-end only. When the app keeps data that must be saved, listed, shared or edited (accounts, bookings, orders, posts, tasks, messages, products, admin dashboards, CRMs), build a real backend inside this same Next.js app:
+- Database: SQLite with better-sqlite3. Install exactly this version first (newer versions have no prebuilt binary for this sandbox): npm install better-sqlite3@10.1.0 @types/better-sqlite3 --yes
+- lib/db.ts holds the connection and the schema. Start it with: import "server-only"; then open data/app.db (create the data folder with fs.mkdirSync(path.join(process.cwd(), "data"), { recursive: true })), run db.pragma("journal_mode = WAL"), create every table with CREATE TABLE IF NOT EXISTS, and insert realistic seed rows when a table is empty, so the app shows real data straight away. Reuse one connection (keep it on globalThis in development).
+- Always use parameterized queries, e.g. db.prepare("SELECT * FROM tasks WHERE id = ?").get(id). Never build SQL by joining strings.
+- Server logic lives in Route Handlers (app/api/<resource>/route.ts with GET/POST/PATCH/DELETE returning NextResponse.json) and/or Server Actions (a file starting with "use server", e.g. app/actions.ts). Route Handlers that use the database must export const runtime = "nodejs" and export const dynamic = "force-dynamic".
+- Validate every input on the server with zod and answer bad input with a 400 and a clear message. Handle "not found" with a 404.
+- Never import lib/db.ts from a "use client" file. Server components may read the database directly; client components call the API or Server Actions, show loading, empty and error states, and refresh the data after a change.
+- Accounts only when the app needs them: email and password, the password hashed with node:crypto scrypt and a random salt, sessions stored in a sessions table and kept in an httpOnly, sameSite=lax cookie. No third-party auth services.
+- After writing the backend, call each GET route once with the terminal (for example: curl -s localhost:3000/api/tasks) to make sure it returns data, and fix any error before finishing.
 
 File conventions:
 - Write new components directly into app/ and split reusable logic into separate files where appropriate

@@ -5,5 +5,5 @@ export const SITE = {
     operator: "Soumyadip Sarkar",
     country: "India",
     email: "soumyadip.0202@gmail.com",
-    legalUpdated: "22 November 2026",
+    legalUpdated: "23 November 2026",
 } as const;
