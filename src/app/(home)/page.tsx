@@ -5,6 +5,7 @@ import { ProjectForm } from "@/modules/home/ui/components/project-form";
 import { ProjectList } from "@/modules/home/ui/components/project-list";
 import { ExampleGallery } from "@/modules/home/ui/components/example-gallery";
 import { YogaPreview } from "@/modules/home/ui/components/yoga-preview";
+import { Greeting } from "@/modules/home/ui/components/greeting";
 
 const pill =
   "inline-flex h-12 items-center justify-center rounded-full px-6 text-[15px] font-bold transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#ff3d7f]";
@@ -25,6 +26,28 @@ const HOW = [
 const Page = () => {
   return (
     <div className="mx-auto w-full max-w-[1180px] px-5 pb-16 sm:px-8">
+      {/* Signed in: a focused start page, the prompt box first, then projects. */}
+      <SignedIn>
+        <section aria-labelledby="start-title" className="mx-auto max-w-[760px] pt-8 sm:pt-16">
+          <h1
+            id="start-title"
+            className="text-center text-[34px] font-bold leading-[1.05] tracking-[-0.04em] text-white text-balance sm:text-[52px]"
+          >
+            <Greeting />
+          </h1>
+          <p className="mt-3 text-center text-base font-medium text-white/90 sm:text-lg">
+            Describe it in plain words. Nova builds it, checks it and fixes it.
+          </p>
+          <div className="mt-8">
+            <ProjectForm />
+          </div>
+        </section>
+        <div id="projects" className="scroll-mt-6 pt-20 sm:pt-28">
+          <ProjectList />
+        </div>
+      </SignedIn>
+
+      <SignedOut>
       {/* Hero: the promise on the left, the working prompt box on the right. */}
       <div className="grid items-start gap-10 pt-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_540px] lg:gap-12 lg:pt-16">
         <section aria-labelledby="hero-title" className="text-white">
@@ -38,18 +61,11 @@ const Page = () => {
             Describe it in plain words. Nova writes the code, runs it, fixes its own mistakes and hands you a live app.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <SignedOut>
-              <SignUpButton>
-                <button type="button" className={`${pill} bg-[#0b1b33] text-white`}>
-                  Start building free
-                </button>
-              </SignUpButton>
-            </SignedOut>
-            <SignedIn>
-              <Link href="#projects" className={`${pill} bg-[#0b1b33] text-white`}>
-                Your projects
-              </Link>
-            </SignedIn>
+            <SignUpButton>
+              <button type="button" className={`${pill} bg-[#0b1b33] text-white`}>
+                Start building free
+              </button>
+            </SignUpButton>
             <Link href="#examples" className={`${pill} bg-white text-[#0b1b33] shadow-sm`}>
               See examples
             </Link>
@@ -85,12 +101,6 @@ const Page = () => {
           </div>
         </section>
       </div>
-
-      <SignedIn>
-        <div id="projects" className="scroll-mt-6 pt-16 lg:pt-8">
-          <ProjectList />
-        </div>
-      </SignedIn>
 
       <ExampleGallery />
 
@@ -143,16 +153,16 @@ const Page = () => {
           No card needed. Go Pro when you want the most capable models and bigger builds.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <SignedOut>
-            <SignUpButton>
-              <button type="button" className={`${pill} bg-white text-[#0b1b33]`}>Start building free</button>
-            </SignUpButton>
-          </SignedOut>
+          <SignUpButton>
+            <button type="button" className={`${pill} bg-white text-[#0b1b33]`}>Start building free</button>
+          </SignUpButton>
           <Link href="/pricing" className={`${pill} bg-[#0b1b33]/90 text-white`}>See pricing</Link>
         </div>
       </section>
 
-      <footer className="mt-12 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+      </SignedOut>
+
+      <footer className="mt-16 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-2 font-bold text-foreground">
           <span aria-hidden="true" className="size-5 rounded-full [background:conic-gradient(from_200deg,#ff6a3d,#ff3d7f,#7c5cff,#1fc8e6,#ff6a3d)] [mask:radial-gradient(circle,transparent_4px,#000_4.5px)]" />
           nova

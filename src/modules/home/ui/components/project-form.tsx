@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES } from "../../constants";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { formatDuration, intervalToDuration } from "date-fns";
+import { formatDistanceStrict } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ModelSelector } from "@/components/model-selector";
 import { getDefaultModel } from "@/lib/models";
@@ -66,11 +66,11 @@ export const ProjectForm = () => {
         }
     }, [usage?.msBeforeNext]);
 
-    // Update 'now' every second for live countdown
+    // A reset date only needs minute precision; a ticking seconds counter is noise.
     useEffect(() => {
         const interval = setInterval(() => {
             setNow(new Date());
-        }, 1000);
+        }, 60_000);
 
         return () => clearInterval(interval);
     }, []);
@@ -134,14 +134,8 @@ export const ProjectForm = () => {
     const isButtonDisabled = !form.formState.isValid || createProject.isPending || (isSignedIn && isOutOfCredits);
     const isSubmitting = createProject.isPending;
 
-    const countdown = resetDate
-        ? formatDuration(
-            intervalToDuration({
-                start: now,
-                end: resetDate,
-            }),
-            { format: ["days", "hours", "minutes", "seconds"] }
-        )
+    const countdown = resetDate && resetDate > now
+        ? formatDistanceStrict(resetDate, now, { roundingMethod: "ceil" })
         : null;
 
     return (
@@ -201,6 +195,8 @@ export const ProjectForm = () => {
                         <Button
                             type="submit"
                             disabled={isButtonDisabled}
+                            aria-keyshortcuts="Control+Enter Meta+Enter"
+                            title="Build (Ctrl or Cmd + Enter)"
                             className="ml-auto h-11 rounded-full px-6 text-[15px] font-bold focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
                             {isSubmitting ? (
@@ -213,11 +209,6 @@ export const ProjectForm = () => {
                             )}
                         </Button>
                     </div>
-                    <p className={cn("mt-3 hidden text-xs text-muted-foreground", !isMobile && "sm:block")}>
-                        Press <kbd className="rounded-md border border-border bg-muted px-1.5 font-mono text-[11px]">Ctrl</kbd> or{" "}
-                        <kbd className="rounded-md border border-border bg-muted px-1.5 font-mono text-[11px]">Cmd</kbd> +{" "}
-                        <kbd className="rounded-md border border-border bg-muted px-1.5 font-mono text-[11px]">Enter</kbd> to build.
-                    </p>
 
                 {isSignedIn && usage && (
                     <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-border pt-3 text-[13px] text-muted-foreground">
@@ -248,7 +239,7 @@ export const ProjectForm = () => {
 
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="mr-1 text-[13px] font-medium text-muted-foreground lg:text-white/90">Try</span>
-                    {PROJECT_TEMPLATES.map((template) => (
+                    {PROJECT_TEMPLATES.slice(0, 5).map((template) => (
                         <button
                             key={template.title}
                             type="button"

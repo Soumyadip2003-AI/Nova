@@ -54,7 +54,7 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
         <span className="flex items-center gap-2">
           <span>{model.name}</span>
           {model.tier === "pro" && (
-            <span className="flex items-center gap-1 rounded-full bg-accent px-1.5 py-px text-[11px] font-bold text-accent-foreground text-muted-foreground">
+            <span className="flex items-center gap-1 rounded-full bg-accent px-1.5 py-px text-[11px] font-bold text-accent-foreground">
               <CrownIcon className="size-3" aria-hidden />
               {locked ? "Pro only" : "Pro"}
             </span>
@@ -73,7 +73,9 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
   const currentModel = AI_MODELS[value as ModelId];
 
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    // Inside a <form>, Radix's hidden native select can report "" (e.g. on
+    // autofill or reset), which blanked the label; an empty choice is never valid.
+    <Select value={value} onValueChange={(next) => next && onChange(next)} disabled={disabled}>
       <SelectTrigger
         id={id}
         aria-label={id ? undefined : "AI model"}
@@ -84,12 +86,15 @@ export const ModelSelector = ({ value, onChange, disabled, className, id }: Prop
           className
         )}
       >
-        <SelectValue>
+        <SelectValue placeholder={<span className="flex items-center gap-1.5">
+            {currentModel && MODEL_ICONS[currentModel.category]}
+            <span>{currentModel?.name || "Choose a model"}</span>
+          </span>}>
           <span className="flex items-center gap-1.5">
             {currentModel && MODEL_ICONS[currentModel.category]}
             <span>{currentModel?.name || "Select model"}</span>
             {currentModel?.tier === "pro" && (
-              <span className="font-mono text-[11px] text-muted-foreground">Pro</span>
+              <span className="rounded-full bg-accent px-1.5 text-[11px] font-bold text-accent-foreground">Pro</span>
             )}
           </span>
         </SelectValue>

@@ -19,6 +19,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
+// Each project gets a stable soft colour tile, from the example gallery palette.
+const TILES = [
+    { background: "#ffe8d6", color: "#9a3412" },
+    { background: "#e8e6ff", color: "#4b2fd6" },
+    { background: "#d9f3ec", color: "#0c7a4f" },
+    { background: "#fde2ec", color: "#be185d" },
+    { background: "#dff3fb", color: "#0e7490" },
+];
+const tileFor = (key: string) => {
+    let hash = 0;
+    for (const ch of key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    return TILES[hash % TILES.length];
+};
+
 export const ProjectList = () => {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
@@ -53,7 +67,7 @@ export const ProjectList = () => {
     return (
         <section aria-labelledby="projects-title" className="space-y-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="projects-title" className="text-3xl font-bold tracking-[-0.02em]">
+                <h2 id="projects-title" className="text-[28px] font-bold tracking-[-0.03em]">
                     Your projects
                 </h2>
                 <p className="text-sm font-medium text-muted-foreground">
@@ -66,18 +80,24 @@ export const ProjectList = () => {
                     <li
                         key={project.id}
                         className={cn(
-                            "group relative flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5",
-                            "hover:shadow-float focus-within:shadow-float"
+                            "group relative flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-[transform,box-shadow]",
+                            "hover:-translate-y-0.5 hover:border-transparent hover:shadow-float focus-within:shadow-float"
                         )}
                     >
                         <div className="flex items-start justify-between gap-3">
+                            <span
+                                aria-hidden="true"
+                                className="grid size-10 shrink-0 place-items-center rounded-xl text-[15px] font-bold"
+                                style={tileFor(project.name || project.id)}
+                            >
+                                {(project.messages[0]?.content || project.name || "N").trim().charAt(0).toUpperCase()}
+                            </span>
                             <Link
                                 href={`/projects/${project.id}`}
                                 className={cn(
-                                    "line-clamp-2 min-w-0 rounded-xl font-medium leading-snug text-foreground",
+                                    "line-clamp-2 min-w-0 flex-1 rounded-xl font-bold leading-snug tracking-[-0.01em] text-foreground",
                                     "after:absolute after:inset-0 after:rounded-2xl after:content-['']",
                                     "focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring",
-                                    "group-hover:underline underline-offset-4"
                                 )}
                             >
                                 {project.messages[0]?.content || project.name}
@@ -101,7 +121,7 @@ export const ProjectList = () => {
                             </Button>
                         </div>
 
-                        <p className="mt-auto flex items-center gap-1.5 border-t border-border pt-3 text-xs font-medium text-muted-foreground">
+                        <p className="mt-auto flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                             <ClockIcon className="size-3.5" aria-hidden="true" />
                             Updated{" "}
                             {formatDistanceToNow(new Date(project.updatedAt), {
