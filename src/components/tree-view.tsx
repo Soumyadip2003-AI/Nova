@@ -57,52 +57,52 @@ const getFileIcon = (filename: string) => {
     const name = filename.toLowerCase();
 
     // Special files
-    if (name === 'package.json') return <Package className="w-4 h-4 text-green-500" />;
-    if (name === 'package-lock.json') return <Lock className="w-4 h-4 text-yellow-600" />;
-    if (name === 'tsconfig.json') return <TypeScriptIcon className="w-4 h-4 text-blue-500" />;
-    if (name === '.gitignore') return <FileText className="w-4 h-4 text-gray-500" />;
-    if (name === '.env' || name.startsWith('.env.')) return <Lock className="w-4 h-4 text-yellow-500" />;
-    if (name === 'dockerfile') return <Database className="w-4 h-4 text-blue-400" />;
-    if (name === 'readme.md') return <FileText className="w-4 h-4 text-blue-400" />;
+    if (name === 'package.json') return <Package className="w-4 h-4" />;
+    if (name === 'package-lock.json') return <Lock className="w-4 h-4" />;
+    if (name === 'tsconfig.json') return <TypeScriptIcon className="w-4 h-4" />;
+    if (name === '.gitignore') return <FileText className="w-4 h-4" />;
+    if (name === '.env' || name.startsWith('.env.')) return <Lock className="w-4 h-4" />;
+    if (name === 'dockerfile') return <Database className="w-4 h-4" />;
+    if (name === 'readme.md') return <FileText className="w-4 h-4" />;
 
     // By extension
     switch (ext) {
         // TypeScript/JavaScript
         case 'ts':
-            return <TypeScriptIcon className="w-4 h-4 text-blue-500" />;
+            return <TypeScriptIcon className="w-4 h-4" />;
         case 'tsx':
-            return <ReactIcon className="w-4 h-4 text-cyan-400" />;
+            return <ReactIcon className="w-4 h-4" />;
         case 'js':
-            return <FileCode className="w-4 h-4 text-yellow-400" />;
+            return <FileCode className="w-4 h-4" />;
         case 'jsx':
-            return <ReactIcon className="w-4 h-4 text-cyan-400" />;
+            return <ReactIcon className="w-4 h-4" />;
 
         // Web
         case 'html':
-            return <Globe className="w-4 h-4 text-orange-500" />;
+            return <Globe className="w-4 h-4" />;
         case 'css':
-            return <Palette className="w-4 h-4 text-blue-500" />;
+            return <Palette className="w-4 h-4" />;
         case 'scss':
         case 'sass':
-            return <Palette className="w-4 h-4 text-pink-400" />;
+            return <Palette className="w-4 h-4" />;
 
         // Data/Config
         case 'json':
-            return <Braces className="w-4 h-4 text-yellow-500" />;
+            return <Braces className="w-4 h-4" />;
         case 'yaml':
         case 'yml':
-            return <FileJson className="w-4 h-4 text-red-400" />;
+            return <FileJson className="w-4 h-4" />;
         case 'xml':
-            return <FileCode className="w-4 h-4 text-orange-400" />;
+            return <FileCode className="w-4 h-4" />;
         case 'env':
-            return <Lock className="w-4 h-4 text-yellow-500" />;
+            return <Lock className="w-4 h-4" />;
 
         // Markdown/Text
         case 'md':
         case 'mdx':
-            return <FileText className="w-4 h-4 text-blue-300" />;
+            return <FileText className="w-4 h-4" />;
         case 'txt':
-            return <FileText className="w-4 h-4 text-gray-400" />;
+            return <FileText className="w-4 h-4" />;
 
         // Images
         case 'png':
@@ -112,56 +112,36 @@ const getFileIcon = (filename: string) => {
         case 'svg':
         case 'webp':
         case 'ico':
-            return <ImageIcon className="w-4 h-4 text-purple-400" />;
+            return <ImageIcon className="w-4 h-4" />;
 
         // Python
         case 'py':
-            return <Hash className="w-4 h-4 text-yellow-500" />;
+            return <Hash className="w-4 h-4" />;
 
         // Other code
         case 'sql':
-            return <Database className="w-4 h-4 text-blue-400" />;
+            return <Database className="w-4 h-4" />;
         case 'prisma':
-            return <Database className="w-4 h-4 text-teal-500" />;
+            return <Database className="w-4 h-4" />;
         case 'graphql':
         case 'gql':
-            return <Braces className="w-4 h-4 text-pink-500" />;
+            return <Braces className="w-4 h-4" />;
 
         // Fonts
         case 'woff':
         case 'woff2':
         case 'ttf':
         case 'otf':
-            return <FileType className="w-4 h-4 text-red-400" />;
+            return <FileType className="w-4 h-4" />;
 
         default:
             return <FileIcon className="w-4 h-4 text-muted-foreground" />;
     }
 };
 
-// Get folder icon with colors
-const getFolderIcon = (folderName: string, isOpen: boolean) => {
-    const name = folderName.toLowerCase();
-
-    // Special folder colors
-    let colorClass = "text-sky-500";
-
-    if (name === 'components' || name === 'ui') colorClass = "text-purple-500";
-    else if (name === 'app' || name === 'pages') colorClass = "text-green-500";
-    else if (name === 'lib' || name === 'utils') colorClass = "text-yellow-500";
-    else if (name === 'hooks') colorClass = "text-pink-500";
-    else if (name === 'api') colorClass = "text-blue-500";
-    else if (name === 'styles') colorClass = "text-teal-500";
-    else if (name === 'public' || name === 'assets') colorClass = "text-orange-500";
-    else if (name === 'node_modules') colorClass = "text-gray-500";
-    else if (name === 'prisma') colorClass = "text-teal-500";
-    else if (name === 'types') colorClass = "text-blue-400";
-
-    if (isOpen) {
-        return <FolderOpenIcon className={cn("w-4 h-4", colorClass)} />;
-    }
-    return <FolderIcon className={cn("w-4 h-4", colorClass)} />;
-};
+// Folder icon; colour comes from the row so it stays on the ink palette
+const getFolderIcon = (isOpen: boolean) =>
+    isOpen ? <FolderOpenIcon className="w-4 h-4" /> : <FolderIcon className="w-4 h-4" />;
 
 const TreeNode = ({
     item,
@@ -191,49 +171,52 @@ const TreeNode = ({
     return (
         <div className="relative">
             <button
+                type="button"
                 onClick={handleClick}
+                aria-expanded={isFolder ? isExpanded : undefined}
+                aria-current={isSelected ? "true" : undefined}
                 className={cn(
-                    "flex items-center w-full py-0.5 text-sm hover:bg-accent/50 transition-colors text-left relative group/item",
-                    isSelected && "bg-accent text-accent-foreground"
+                    "relative flex w-full items-center py-0.5 text-left font-mono text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    isSelected && "bg-accent text-accent-foreground hover:bg-accent"
                 )}
             >
                 {/* Indentation and connection lines */}
-                <div className="flex items-center h-6">
+                <span className="flex items-center h-6" aria-hidden>
                     {/* Parent vertical lines */}
                     {parentLines.map((showLine, idx) => (
-                        <div
+                        <span
                             key={idx}
                             className="w-4 h-full relative flex items-center justify-center"
                         >
                             {showLine && (
-                                <div className="absolute w-px h-full bg-border/40" />
+                                <span className="absolute w-px h-full bg-border" />
                             )}
-                        </div>
+                        </span>
                     ))}
 
                     {/* Current level L-shaped connector */}
                     {level > 0 && (
-                        <div className="relative w-4 h-full flex items-center justify-center">
+                        <span className="relative w-4 h-full flex items-center justify-center">
                             {/* Vertical line */}
-                            <div
+                            <span
                                 className={cn(
-                                    "absolute left-2 w-px bg-border/40",
+                                    "absolute left-2 w-px bg-border",
                                     isLast ? "top-0 h-3" : "top-0 h-full"
                                 )}
                             />
                             {/* Horizontal line */}
-                            <div className="absolute top-3 left-2 w-2 h-px bg-border/40" />
-                        </div>
+                            <span className="absolute top-3 left-2 w-2 h-px bg-border" />
+                        </span>
                     )}
-                </div>
+                </span>
 
                 {/* Chevron */}
                 <span className="w-4 h-4 flex items-center justify-center shrink-0 ml-0.5">
                     {isFolder ? (
                         isExpanded ? (
-                            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                            <ChevronDown className="w-3 h-3 text-muted-foreground" aria-hidden />
                         ) : (
-                            <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                            <ChevronRight className="w-3 h-3 text-muted-foreground" aria-hidden />
                         )
                     ) : (
                         <span className="w-3 h-3" />
@@ -241,18 +224,14 @@ const TreeNode = ({
                 </span>
 
                 {/* Icon */}
-                <span className="w-4 h-4 flex items-center justify-center shrink-0 mr-1.5 ml-1">
+                <span className="w-4 h-4 flex items-center justify-center shrink-0 mr-1.5 ml-1 text-muted-foreground" aria-hidden>
                     {isFolder
-                        ? getFolderIcon(name, isExpanded)
+                        ? getFolderIcon(isExpanded)
                         : getFileIcon(name)
                     }
                 </span>
 
-                {/* Name - bold for files */}
-                <span className={cn(
-                    "truncate pr-2",
-                    !isFolder && "font-semibold"
-                )}>
+                <span className="truncate pr-2">
                     {name}
                 </span>
             </button>
@@ -290,13 +269,13 @@ export const TreeView = ({
     if (!data || data.length === 0) {
         return (
             <div className="p-4 text-sm text-muted-foreground">
-                No files to display
+                No files yet
             </div>
         );
     }
 
     return (
-        <div className="py-2 overflow-auto h-full text-sm">
+        <div className="h-full overflow-auto py-2">
             {data.map((item, index) => {
                 const name = Array.isArray(item) ? item[0] : item;
                 const isLastItem = index === data.length - 1;

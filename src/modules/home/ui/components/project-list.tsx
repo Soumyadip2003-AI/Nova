@@ -4,8 +4,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2Icon, ClockIcon, FolderOpenIcon, TrashIcon, ArrowRightIcon } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { Loader2Icon, ClockIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +18,20 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+
+// Each project gets a stable soft colour tile, from the example gallery palette.
+const TILES = [
+    { background: "#ffe8d6", color: "#9a3412" },
+    { background: "#e8e6ff", color: "#4b2fd6" },
+    { background: "#d9f3ec", color: "#0c7a4f" },
+    { background: "#fde2ec", color: "#be185d" },
+    { background: "#dff3fb", color: "#0e7490" },
+];
+const tileFor = (key: string) => {
+    let hash = 0;
+    for (const ch of key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    return TILES[hash % TILES.length];
+};
 
 export const ProjectList = () => {
     const trpc = useTRPC();
@@ -40,14 +53,9 @@ export const ProjectList = () => {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500/30 to-orange-500/30 blur-2xl animate-pulse scale-150" />
-                    <div className="relative p-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-xl">
-                        <Loader2Icon className="size-8 animate-spin text-amber-500" />
-                    </div>
-                </div>
-                <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading your projects...</p>
+            <div role="status" className="flex items-center gap-3 py-10 text-sm text-muted-foreground">
+                <Loader2Icon className="size-5 animate-spin" aria-hidden="true" />
+                Loading your projects…
             </div>
         );
     }
@@ -57,114 +65,79 @@ export const ProjectList = () => {
     }
 
     return (
-        <section className="space-y-8 py-8">
-            {/* Section Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl blur-lg opacity-30" />
-                        <div className="relative p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/25">
-                            <FolderOpenIcon className="size-5 text-white" />
-                        </div>
-                    </div>
-                    <div>
-                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                            Your Projects
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                            {projects.length} project{projects.length !== 1 ? "s" : ""} created
-                        </p>
-                    </div>
-                </div>
+        <section aria-labelledby="projects-title" className="space-y-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 id="projects-title" className="text-[28px] font-bold tracking-[-0.03em]">
+                    Your projects
+                </h2>
+                <p className="text-sm font-medium text-muted-foreground">
+                    {projects.length} project{projects.length !== 1 ? "s" : ""}
+                </p>
             </div>
 
-            {/* Project Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projects.map((project, index) => (
-                    <Link
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {projects.map((project) => (
+                    <li
                         key={project.id}
-                        href={`/projects/${project.id}`}
                         className={cn(
-                            "group relative block animate-fade-in-up",
+                            "group relative flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-[transform,box-shadow]",
+                            "hover:-translate-y-0.5 hover:border-transparent hover:shadow-float focus-within:shadow-float"
                         )}
-                        style={{ animationDelay: `${index * 75}ms` }}
                     >
-                        {/* Glow effect */}
-                        <div className="absolute -inset-px bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl opacity-0 group-hover:opacity-100 blur-sm transition-all duration-500" />
-
-                        {/* Card */}
-                        <div className={cn(
-                            "relative flex flex-col h-full p-5 rounded-2xl transition-all duration-300",
-                            "bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl",
-                            "border border-zinc-200/80 dark:border-zinc-800/80",
-                            "group-hover:border-transparent",
-                            "group-hover:shadow-2xl group-hover:shadow-amber-500/10",
-                            "group-hover:-translate-y-1"
-                        )}>
-                            {/* Top row: Logo and Actions */}
-                            <div className="flex items-start justify-between mb-4">
-                                {/* Logo */}
-                                <Logo size={28} withContainer containerClassName="size-12 p-2" hover />
-
-                                {/* Action buttons */}
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className={cn(
-                                            "size-8 rounded-xl transition-all duration-200",
-                                            "hover:bg-red-500/10 hover:text-red-500",
-                                            "dark:hover:bg-red-500/20"
-                                        )}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setDeleteId(project.id);
-                                        }}
-                                    >
-                                        <TrashIcon className="size-4" />
-                                    </Button>
-                                    <div className={cn(
-                                        "size-8 rounded-xl flex items-center justify-center transition-all duration-200",
-                                        "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                    )}>
-                                        <ArrowRightIcon className="size-4" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Project name */}
-                            <h3 className={cn(
-                                "font-semibold text-lg mb-2 truncate transition-colors duration-300",
-                                "group-hover:text-amber-600 dark:group-hover:text-amber-400"
-                            )}>
+                        <div className="flex items-start justify-between gap-3">
+                            <span
+                                aria-hidden="true"
+                                className="grid size-10 shrink-0 place-items-center rounded-xl text-[15px] font-bold"
+                                style={tileFor(project.name || project.id)}
+                            >
+                                {(project.messages[0]?.content || project.name || "N").trim().charAt(0).toUpperCase()}
+                            </span>
+                            <Link
+                                href={`/projects/${project.id}`}
+                                className={cn(
+                                    "line-clamp-2 min-w-0 flex-1 rounded-xl font-bold leading-snug tracking-[-0.01em] text-foreground",
+                                    "after:absolute after:inset-0 after:rounded-2xl after:content-['']",
+                                    "focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring",
+                                )}
+                            >
                                 {project.messages[0]?.content || project.name}
-                            </h3>
-
-                            {/* Timestamp */}
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-auto pt-3 border-t border-zinc-100 dark:border-zinc-800/50">
-                                <ClockIcon className="size-3.5" />
-                                <span>
-                                    {formatDistanceToNow(new Date(project.updatedAt), {
-                                        addSuffix: true,
-                                    })}
-                                </span>
-                            </div>
-
-                            {/* Bottom gradient line */}
-                            <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            </Link>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Delete project"
+                                className={cn(
+                                    "relative z-10 size-9 shrink-0 rounded-xl text-muted-foreground",
+                                    "hover:bg-destructive-soft hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
+                                )}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDeleteId(project.id);
+                                }}
+                            >
+                                <TrashIcon className="size-4" aria-hidden="true" />
+                            </Button>
                         </div>
-                    </Link>
-                ))}
-            </div>
 
-            {/* Delete Confirmation Dialog */}
+                        <p className="mt-auto flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                            <ClockIcon className="size-3.5" aria-hidden="true" />
+                            Updated{" "}
+                            {formatDistanceToNow(new Date(project.updatedAt), {
+                                addSuffix: true,
+                            })}
+                        </p>
+                    </li>
+                ))}
+            </ul>
+
             <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-                <AlertDialogContent className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80">
+                <AlertDialogContent className="rounded-2xl border border-border shadow-float">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="text-xl">Delete Project</AlertDialogTitle>
+                        <AlertDialogTitle className="text-xl">Delete this project?</AlertDialogTitle>
                         <AlertDialogDescription className="text-muted-foreground">
-                            Are you sure you want to delete this project? This action cannot be undone and all associated data will be permanently removed.
+                            The project, its chat and every version will be removed for good. You cannot undo this.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="gap-2">
@@ -172,20 +145,20 @@ export const ProjectList = () => {
                             disabled={deleteMutation.isPending}
                             className="rounded-xl"
                         >
-                            Cancel
+                            Keep it
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
                             disabled={deleteMutation.isPending}
-                            className="rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25"
+                            className="rounded-xl bg-destructive text-primary-foreground hover:bg-destructive/90"
                         >
                             {deleteMutation.isPending ? (
                                 <>
-                                    <Loader2Icon className="size-4 animate-spin mr-2" />
-                                    Deleting...
+                                    <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
+                                    Deleting…
                                 </>
                             ) : (
-                                "Delete Project"
+                                "Delete project"
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

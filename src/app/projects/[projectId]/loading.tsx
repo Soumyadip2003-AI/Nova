@@ -1,23 +1,33 @@
-import { Loader2Icon } from "lucide-react";
-
+// Mirrors the workspace layout: header bar, chat on the left, preview card on the right.
 export default function Loading() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-      <div className="relative">
-        {/* Animated gradient ring */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 opacity-20 blur-xl animate-pulse" />
+    <div className="flex h-dvh flex-col bg-background" role="status">
+      <span className="sr-only">Opening your project</span>
 
-        {/* Spinner */}
-        <Loader2Icon className="size-12 text-amber-500 animate-spin relative z-10" />
+      <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 sm:px-5">
+        <div className="flex items-center gap-3">
+          <div className="size-7 animate-pulse rounded-xl bg-muted" />
+          <div className="h-5 w-36 animate-pulse rounded-xl bg-muted sm:w-48" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="hidden h-9 w-44 animate-pulse rounded-xl bg-muted md:block" />
+          <div className="h-9 w-20 animate-pulse rounded-xl bg-muted" />
+          <div className="size-8 animate-pulse rounded-xl bg-muted" />
+        </div>
       </div>
 
-      <div className="text-center space-y-2">
-        <p className="text-lg font-medium bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent">
-          Setting up your project
-        </p>
-        <p className="text-sm text-muted-foreground">
-          This will only take a moment...
-        </p>
+      <div className="flex min-h-0 flex-1">
+        <div className="flex w-full flex-col gap-4 bg-card p-5 md:w-[35%] md:border-r md:border-border">
+          <div className="ml-auto h-12 w-3/4 animate-pulse rounded-xl bg-muted" />
+          <div className="h-36 w-full animate-pulse rounded-xl bg-muted" />
+          <div className="h-4 w-2/3 animate-pulse rounded-xl bg-muted" />
+          <div className="mt-auto h-12 w-full animate-pulse rounded-xl bg-muted" />
+        </div>
+
+        <div className="hidden min-w-0 flex-1 flex-col gap-3 px-5 pt-4 pb-5 md:flex">
+          <div className="h-11 w-52 animate-pulse rounded-xl bg-muted" />
+          <div className="flex-1 rounded-2xl border border-border bg-card" />
+        </div>
       </div>
     </div>
   );

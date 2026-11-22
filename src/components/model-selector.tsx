@@ -2,7 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { CrownIcon, SparklesIcon, BrainIcon, ZapIcon } from "lucide-react";
+import { CrownIcon, CpuIcon, BrainIcon, ZapIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -22,15 +22,19 @@ interface Props {
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  /** Lets a visible <label htmlFor> name the trigger. */
+  id?: string;
 }
 
 const MODEL_ICONS: Record<string, React.ReactNode> = {
-  standard: <SparklesIcon className="size-3.5" />,
-  reasoning: <BrainIcon className="size-3.5" />,
-  flagship: <ZapIcon className="size-3.5" />,
+  standard: <CpuIcon className="size-3.5" aria-hidden />,
+  reasoning: <BrainIcon className="size-3.5" aria-hidden />,
+  flagship: <ZapIcon className="size-3.5" aria-hidden />,
 };
 
-export const ModelSelector = ({ value, onChange, disabled, className }: Props) => {
+const groupLabel = "flex items-center gap-1.5 text-xs font-medium text-muted-foreground";
+
+export const ModelSelector = ({ value, onChange, disabled, className, id }: Props) => {
   const trpc = useTRPC();
   const { isSignedIn } = useAuth();
   // Usage is per user: never ask for it before Clerk confirms a signed-in user.
@@ -46,12 +50,12 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
   const item = (model: ModelInfo) => {
     const locked = !isPro && model.tier === "pro";
     return (
-      <SelectItem key={model.id} value={model.id} disabled={locked}>
+      <SelectItem key={model.id} value={model.id} disabled={locked} className="rounded-xl">
         <span className="flex items-center gap-2">
           <span>{model.name}</span>
           {model.tier === "pro" && (
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <CrownIcon className="size-3 text-amber-500" aria-hidden />
+            <span className="flex items-center gap-1 rounded-full bg-accent px-1.5 py-px text-[11px] font-bold text-accent-foreground">
+              <CrownIcon className="size-3" aria-hidden />
               {locked ? "Pro only" : "Pro"}
             </span>
           )}
@@ -69,30 +73,36 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
   const currentModel = AI_MODELS[value as ModelId];
 
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    // Inside a <form>, Radix's hidden native select can report "" (e.g. on
+    // autofill or reset), which blanked the label; an empty choice is never valid.
+    <Select value={value} onValueChange={(next) => next && onChange(next)} disabled={disabled}>
       <SelectTrigger
+        id={id}
+        aria-label={id ? undefined : "AI model"}
         size="sm"
         className={cn(
-          "h-8 gap-1.5 text-xs bg-white/60 dark:bg-zinc-900/60",
-          "border-zinc-200/80 dark:border-zinc-800/80",
-          "hover:border-amber-500/40 hover:bg-amber-50/50 dark:hover:bg-amber-950/30",
+          "h-8 gap-1.5 rounded-full border-0 bg-muted px-3 text-[13px] font-medium text-foreground shadow-none",
+          "hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
           className
         )}
       >
-        <SelectValue>
+        <SelectValue placeholder={<span className="flex items-center gap-1.5">
+            {currentModel && MODEL_ICONS[currentModel.category]}
+            <span>{currentModel?.name || "Choose a model"}</span>
+          </span>}>
           <span className="flex items-center gap-1.5">
             {currentModel && MODEL_ICONS[currentModel.category]}
             <span>{currentModel?.name || "Select model"}</span>
             {currentModel?.tier === "pro" && (
-              <CrownIcon className="size-3 text-amber-500" />
+              <span className="rounded-full bg-accent px-1.5 text-[11px] font-bold text-accent-foreground">Pro</span>
             )}
           </span>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent align="start">
+      <SelectContent align="start" className="rounded-2xl border border-border">
         {standardModels.length > 0 && (
           <SelectGroup>
-            <SelectLabel className="flex items-center gap-1.5 text-xs font-medium">
+            <SelectLabel className={groupLabel}>
               {MODEL_ICONS.standard}
               Standard
             </SelectLabel>
@@ -104,7 +114,7 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
           <>
             <SelectSeparator />
             <SelectGroup>
-              <SelectLabel className="flex items-center gap-1.5 text-xs font-medium">
+              <SelectLabel className={groupLabel}>
                 {MODEL_ICONS.reasoning}
                 Reasoning
               </SelectLabel>
@@ -117,7 +127,7 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
           <>
             <SelectSeparator />
             <SelectGroup>
-              <SelectLabel className="flex items-center gap-1.5 text-xs font-medium">
+              <SelectLabel className={groupLabel}>
                 {MODEL_ICONS.flagship}
                 Flagship
               </SelectLabel>
@@ -130,8 +140,8 @@ export const ModelSelector = ({ value, onChange, disabled, className }: Props) =
           <>
             <SelectSeparator />
             <div className="px-2 py-1.5">
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CrownIcon className="size-3 text-amber-500" />
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CrownIcon className="size-3" aria-hidden />
                 Upgrade to Pro to unlock the locked models
               </p>
             </div>

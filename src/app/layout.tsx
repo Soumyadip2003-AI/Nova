@@ -1,19 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCReactProvider } from "@/trpc/client";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import {ClerkProvider} from '@clerk/nextjs'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// Satoshi (Indian Type Foundry, free for commercial use via Fontshare), self-hosted.
+const sans = localFont({
+  variable: "--font-satoshi",
+  display: "swap",
+  src: [
+    { path: "./fonts/Satoshi-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/Satoshi-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/Satoshi-700.woff2", weight: "700", style: "normal" },
+  ],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const mono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -30,45 +38,36 @@ export default function RootLayout({
     <ClerkProvider
         appearance={{
           variables: {
-            colorPrimary: "#f97316",
+            colorPrimary: "#0b1b33",
             colorTextOnPrimaryBackground: "#ffffff",
             colorBackground: "#ffffff",
             colorInputBackground: "#ffffff",
-            colorInputText: "#0a0a0a",
-            colorTextSecondary: "#737373",
+            colorInputText: "#0b1b33",
+            colorText: "#0b1b33",
+            colorTextSecondary: "#47546d",
+            colorDanger: "#e5484d",
+            colorSuccess: "#12a36a",
+            fontFamily: "var(--font-satoshi), system-ui, sans-serif",
             borderRadius: "0.75rem",
           },
           elements: {
-            formButtonPrimary:
-              "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all duration-300",
-            card: "shadow-xl border border-border/50 backdrop-blur-xl",
-            headerTitle: "text-foreground",
-            headerSubtitle: "text-muted-foreground",
-            socialButtonsBlockButton:
-              "border border-border/50 hover:bg-accent hover:border-amber-500/40 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/10",
-            formFieldInput:
-              "border border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm transition-all duration-300 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/20 focus:shadow-[0_0_20px_rgba(251,146,60,0.15)]",
-            formFieldInputShowPasswordButton: "text-amber-500 hover:text-amber-600",
-            footerActionLink: "text-orange-500 hover:text-orange-600 transition-colors",
-            identityPreviewEditButton: "text-orange-500 hover:text-orange-600",
-            formFieldLabel: "text-foreground",
-            dividerLine: "bg-border/50",
-            dividerText: "text-muted-foreground",
-            formFieldSuccessText: "text-green-500",
-            formFieldErrorText: "text-red-500",
-            alertText: "text-foreground",
-            formResendCodeLink: "text-orange-500 hover:text-orange-600",
+            card: "shadow-[0_1px_1px_rgba(11,27,51,.04),0_12px_32px_-12px_rgba(11,27,51,.18),0_40px_80px_-40px_rgba(11,27,51,.25)] border-0",
+            headerTitle: "font-bold tracking-[-0.03em]",
+            formButtonPrimary: "rounded-full bg-[#0b1b33] hover:bg-[#0b1b33]/90 shadow-none",
+            socialButtonsBlockButton: "rounded-full border-[#e6e9ef] hover:bg-[#f6f8fb]",
+            formFieldInput: "rounded-xl border-[#d5dae3] focus:border-[#0b1b33] focus:ring-2 focus:ring-[#7c5cff]/25",
+            footerActionLink: "text-[#0b1b33] font-bold hover:text-[#0b1b33]",
           },
         }}>
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${sans.variable} ${mono.variable} font-sans antialiased`}
       >
         <TRPCReactProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="light"
             enableSystem
             disableTransitionOnChange
           >

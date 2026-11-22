@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2Icon, CheckCircle2Icon } from "lucide-react";
+import { Loader2Icon, CheckCircle2Icon, AlertCircleIcon } from "lucide-react";
 
 export default function PaymentSuccessPage() {
     const router = useRouter();
@@ -50,31 +50,55 @@ export default function PaymentSuccessPage() {
     }, [router]);
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4">
-            <div className="max-w-md w-full text-center space-y-4">
+        <div className="flex flex-1 items-center justify-center px-4 py-12">
+            <div
+                role="status"
+                aria-live="polite"
+                className="w-full max-w-md rounded-[24px] bg-card p-6 text-card-foreground sm:p-8 shadow-float"
+            >
                 {status === "loading" && (
                     <>
-                        <Loader2Icon className="w-12 h-12 mx-auto animate-spin text-amber-500" />
-                        <h1 className="text-2xl font-bold">Activating Pro Plan...</h1>
-                        <p className="text-muted-foreground">Please wait while we upgrade your account</p>
+                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2Icon aria-hidden className="size-4 animate-spin" />
+                            Working on it
+                        </p>
+                        <h1 className="mt-3 text-3xl font-bold tracking-[-0.02em]">
+                            Turning on Pro
+                        </h1>
+                        <p className="mt-2 text-muted-foreground">
+                            We are adding Pro to your account. This takes a few seconds.
+                        </p>
                     </>
                 )}
 
                 {status === "success" && (
                     <>
-                        <CheckCircle2Icon className="w-12 h-12 mx-auto text-green-500" />
-                        <h1 className="text-2xl font-bold">Welcome to Pro! 🎉</h1>
-                        <p className="text-muted-foreground">
-                            You now have <span className="font-semibold text-amber-600">100 credits</span> per month
+                        <p className="inline-flex items-center gap-2 rounded-full bg-success-soft px-2.5 py-1 text-sm font-medium text-success-strong">
+                            <CheckCircle2Icon aria-hidden className="size-4" />
+                            Pro is on
                         </p>
-                        <p className="text-sm text-muted-foreground">Redirecting you back...</p>
+                        <h1 className="mt-3 text-3xl font-bold tracking-[-0.02em]">
+                            Welcome to Pro
+                        </h1>
+                        <p className="mt-2 text-muted-foreground">
+                            You now have <b className="text-foreground">100</b> credits every month.
+                        </p>
+                        <p className="mt-6 text-sm text-muted-foreground">Taking you back to the home page.</p>
                     </>
                 )}
 
                 {status === "error" && (
                     <>
-                        <h1 className="text-2xl font-bold text-red-500">Something went wrong</h1>
-                        <p className="text-muted-foreground">Please contact support or try logging out and back in</p>
+                        <p className="inline-flex items-center gap-2 rounded-full bg-destructive-soft px-2.5 py-1 text-sm font-medium text-foreground">
+                            <AlertCircleIcon aria-hidden className="size-4 text-destructive" />
+                            Not finished
+                        </p>
+                        <h1 className="mt-3 text-3xl font-bold tracking-[-0.02em]">
+                            Something went wrong
+                        </h1>
+                        <p className="mt-2 text-muted-foreground">
+                            Sign out and sign back in. If Pro is still not on, wait a minute and reload this page.
+                        </p>
                     </>
                 )}
             </div>

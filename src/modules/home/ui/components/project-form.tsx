@@ -6,7 +6,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { ArrowUpIcon, Loader2Icon, SparklesIcon, CrownIcon } from "lucide-react";
+import { Loader2Icon, CircleAlertIcon } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES } from "../../constants";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { formatDuration, intervalToDuration } from "date-fns";
+import { formatDistanceStrict } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ModelSelector } from "@/components/model-selector";
 import { getDefaultModel } from "@/lib/models";
@@ -31,7 +31,6 @@ export const ProjectForm = () => {
     const trpc = useTRPC();
     const router = useRouter();
     const { isSignedIn } = useAuth();
-    const [isFocused, setIsFocused] = useState(false);
     const isMobile = useIsMobile();
 
     // Fetch usage status
@@ -67,11 +66,11 @@ export const ProjectForm = () => {
         }
     }, [usage?.msBeforeNext]);
 
-    // Update 'now' every second for live countdown
+    // A reset date only needs minute precision; a ticking seconds counter is noise.
     useEffect(() => {
         const interval = setInterval(() => {
             setNow(new Date());
-        }, 1000);
+        }, 60_000);
 
         return () => clearInterval(interval);
     }, []);
@@ -135,187 +134,123 @@ export const ProjectForm = () => {
     const isButtonDisabled = !form.formState.isValid || createProject.isPending || (isSignedIn && isOutOfCredits);
     const isSubmitting = createProject.isPending;
 
+    const countdown = resetDate && resetDate > now
+        ? formatDistanceStrict(resetDate, now, { roundingMethod: "ceil" })
+        : null;
+
     return (
         <Form {...form}>
-            <section className="space-y-5">
-                {/* Usage Display for signed-in users */}
-                {isSignedIn && usage && (
-                    <div className={cn(
-                        "rounded-xl p-4 transition-all duration-300",
-                        "bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm",
-                        "border",
-                        isOutOfCredits
-                            ? "border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20"
-                            : usage.plan === "PRO"
-                                ? "border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20"
-                                : "border-zinc-200/80 dark:border-zinc-800/80"
-                    )}>
-                        <div className="flex items-center justify-between gap-4">
-                            <div>
-                                {usage.plan === "PRO" && (
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <CrownIcon className="size-3.5 text-amber-500" />
-                                        <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Pro Plan</span>
-                                    </div>
+            <section className="space-y-4">
+                <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className={cn(
+                        "rounded-[20px] bg-card p-4 text-card-foreground shadow-float sm:p-5",
+                        "focus-within:ring-2 focus-within:ring-ring/60"
+                    )}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            form.handleSubmit(onSubmit)(e);
+                        }
+                    }}
+                >
+                    <label htmlFor="project-idea" className="block text-[13px] font-bold text-muted-foreground">
+                        What do you want to build?
+                    </label>
+                    <FormField
+                        control={form.control}
+                        name="value"
+                        render={({ field }) => (
+                            <TextareaAutosize
+                                id="project-idea"
+                                minRows={3}
+                                maxRows={8}
+                                {...field}
+                                readOnly={isSubmitting}
+                                className={cn(
+                                    "mt-1.5 w-full resize-none border-none bg-transparent text-[17px] font-medium leading-normal text-foreground outline-none",
+                                    "placeholder:text-muted-foreground",
+                                    isSubmitting && "cursor-not-allowed opacity-60"
                                 )}
-                                {isOutOfCredits ? (
-                                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                                        You have run out of credits
-                                    </p>
-                                ) : (
-                                    <p className="text-sm text-foreground">
-                                        <span className="font-semibold">{usage.remainingPoints}</span>
-                                        {usage.plan === "PRO" ? "" : " free"} credit{usage.remainingPoints !== 1 ? 's' : ''} remaining
-                                        {usage.totalCredits && (
-                                            <span className="text-muted-foreground"> / {usage.totalCredits}</span>
-                                        )}
-                                    </p>
-                                )}
-                                {resetDate && (
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                        Resets in {formatDuration(
-                                            intervalToDuration({
-                                                start: now,
-                                                end: resetDate,
-                                            }),
-                                            { format: ["days", "hours", "minutes", "seconds"] }
-                                        )}
-                                    </p>
-                                )}
-                            </div>
-                            {usage.plan !== "PRO" && (
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all duration-300"
-                                >
-                                    <Link href="/pricing">
-                                        <CrownIcon className="size-4 mr-1.5" /> Upgrade
-                                    </Link>
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Main Form Container */}
-                <div className="relative group">
-                    {/* Animated gradient border */}
-                    <div className={cn(
-                        "absolute -inset-[1px] bg-gradient-to-r from-amber-500/50 via-orange-500/50 to-rose-500/50 rounded-2xl blur-sm opacity-0 transition-all duration-500",
-                        isFocused && "opacity-100"
-                    )} />
-
-                    {/* Glow effect */}
-                    <div className={cn(
-                        "absolute -inset-2 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 rounded-3xl blur-xl opacity-0 transition-all duration-500",
-                        isFocused && "opacity-100"
-                    )} />
-
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className={cn(
-                            "relative p-5 rounded-2xl transition-all duration-300",
-                            "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl",
-                            "border border-zinc-200/80 dark:border-zinc-800/80",
-                            "shadow-lg shadow-zinc-200/50 dark:shadow-zinc-900/50",
-                            isFocused && "border-amber-500/30 dark:border-amber-500/30"
+                                placeholder={isSubmitting ? "Starting your project…" : "For example: a booking page for my yoga classes, with a calendar and a sign-up form"}
+                            />
                         )}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                form.handleSubmit(onSubmit)(e);
-                            }
-                        }}
-                    >
-                        {/* Textarea */}
-                        <FormField
-                            control={form.control}
-                            name="value"
-                            render={({ field }) => (
-                                <TextareaAutosize
-                                    minRows={3}
-                                    maxRows={8}
-                                    {...field}
-                                    readOnly={isSubmitting}
-                                    className={cn(
-                                        "w-full resize-none border-none outline-none bg-transparent text-base leading-relaxed",
-                                        "placeholder:text-muted-foreground/60",
-                                        isSubmitting && "cursor-not-allowed opacity-60"
-                                    )}
-                                    onFocus={() => setIsFocused(true)}
-                                    onBlur={() => setIsFocused(false)}
-                                    placeholder={isSubmitting ? "Creating your project..." : "Describe what you want to build..."}
+                    />
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            {isSignedIn && (
+                                <ModelSelector
+                                    value={selectedModel}
+                                    onChange={setSelectedModel}
+                                    disabled={isSubmitting}
                                 />
                             )}
-                        />
-
-                        {/* Bottom bar */}
-                        <div className="flex items-center justify-between pt-4 mt-2 border-t border-zinc-200/60 dark:border-zinc-800/60">
-                            {/* Model selector and keyboard hint */}
-                            <div className="flex items-center gap-3">
-                                {isSignedIn && (
-                                    <ModelSelector
-                                        value={selectedModel}
-                                        onChange={setSelectedModel}
-                                        disabled={isSubmitting}
-                                    />
-                                )}
-                                <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
-                                    <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium shadow-sm">
-                                        <span className="text-xs">⌘/Ctrl</span>
-                                        <span>Enter</span>
-                                    </kbd>
-                                    <span>to submit</span>
-                                </div>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                disabled={isButtonDisabled}
-                                className={cn(
-                                    "ml-auto h-10 px-4 rounded-xl font-medium transition-all duration-300",
-                                    "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
-                                    "text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40",
-                                    "disabled:opacity-50 disabled:shadow-none disabled:from-zinc-400 disabled:to-zinc-500"
-                                )}
-                            >
-                                {isSubmitting ? (
-                                    <Loader2Icon className="size-4 animate-spin" />
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <SparklesIcon className="size-4" />
-                                        <span className="hidden sm:inline">Create</span>
-                                        <ArrowUpIcon className="size-4 sm:hidden" />
-                                    </div>
-                                )}
-                            </Button>
+                            <span className="inline-flex h-7 items-center rounded-full bg-muted px-3 text-[12.5px] font-medium text-muted-foreground">
+                                {isSignedIn ? "1 credit" : "1 credit, 5 free a month"}
+                            </span>
                         </div>
-                    </form>
-                </div>
 
-                {/* Template buttons */}
-                <div className="flex flex-wrap justify-center gap-2">
-                    {PROJECT_TEMPLATES.map((template, index) => (
                         <Button
+                            type="submit"
+                            disabled={isButtonDisabled}
+                            aria-keyshortcuts="Control+Enter Meta+Enter"
+                            title="Build (Ctrl or Cmd + Enter)"
+                            className="ml-auto h-11 rounded-full px-6 text-[15px] font-bold focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
+                                    Starting…
+                                </>
+                            ) : (
+                                "Build"
+                            )}
+                        </Button>
+                    </div>
+
+                {isSignedIn && usage && (
+                    <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-border pt-3 text-[13px] text-muted-foreground">
+                        {isOutOfCredits ? (
+                            <p className="flex items-center gap-1.5 font-medium text-foreground">
+                                <CircleAlertIcon className="size-4 shrink-0 text-destructive" aria-hidden="true" />
+                                You have run out of credits.
+                            </p>
+                        ) : (
+                            <p>
+                                <span className="font-medium text-foreground">{usage.remainingPoints}</span>
+                                {usage.totalCredits ? ` of ${usage.totalCredits}` : ""}{" "}
+                                {usage.plan === "PRO" ? "Pro" : "free"} credit{usage.remainingPoints !== 1 ? "s" : ""} left
+                            </p>
+                        )}
+                        {countdown && <p>Resets in {countdown}</p>}
+                        {usage.plan !== "PRO" && (
+                            <Link
+                                href="/pricing"
+                                className="ml-auto rounded-full font-bold text-[var(--nova-violet)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                Upgrade to Pro
+                            </Link>
+                        )}
+                    </div>
+                )}
+                </form>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="mr-1 text-[13px] font-medium text-muted-foreground lg:text-white/90">Try</span>
+                    {PROJECT_TEMPLATES.slice(0, 5).map((template) => (
+                        <button
                             key={template.title}
-                            variant="outline"
-                            size="sm"
+                            type="button"
                             onClick={() => onSelect(template.prompt)}
                             className={cn(
-                                "rounded-full px-4 h-9 transition-all duration-300 animate-fade-in",
-                                "bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm",
-                                "border-zinc-200/80 dark:border-zinc-800/80",
-                                "hover:border-amber-500/40 hover:bg-amber-50/50 dark:hover:bg-amber-950/30",
-                                "hover:shadow-md hover:shadow-amber-500/10",
-                                "hover:-translate-y-0.5"
+                                "h-8 rounded-full bg-white/95 px-3.5 text-[13px] font-medium text-[#0b1b33] shadow-sm ring-1 ring-border transition-transform lg:ring-0",
+                                "hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                             )}
-                            style={{ animationDelay: `${index * 50}ms` }}
                         >
-                            <span className="mr-1.5">{template.emoji}</span>
-                            <span className="text-sm">{template.title}</span>
-                        </Button>
+                            {template.title.replace(/^Build an? /, "").replace(/^./, (c) => c.toUpperCase())}
+                        </button>
                     ))}
                 </div>
             </section>

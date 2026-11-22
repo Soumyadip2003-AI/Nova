@@ -20,47 +20,51 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-4">
-      {/* Error Icon */}
-      <div className="relative">
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-red-500 to-rose-500 opacity-20 blur-xl" />
-        <div className="relative z-10 p-4 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-          <AlertCircleIcon className="size-12 text-red-500" />
+    <main className=" flex min-h-dvh items-center justify-center bg-background px-4 py-12">
+      <div
+        role="alert"
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-float sm:p-8"
+      >
+        <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+          <AlertCircleIcon className="size-4" aria-hidden />
+          Could not open this project
+        </p>
+        <h1 className="mt-3 text-2xl font-bold text-balance">
+          Something went wrong
+        </h1>
+        <p className="mt-2 text-muted-foreground text-pretty">
+          The project may still be getting ready. Wait a few seconds, then try again.
+        </p>
+
+        {error.message && (
+          <details className="mt-4 text-sm">
+            <summary className="cursor-pointer rounded-md text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Technical details
+            </summary>
+            <p className="mt-2 rounded-xl bg-destructive-soft p-3 font-mono text-xs break-words text-foreground">
+              {error.message}
+            </p>
+          </details>
+        )}
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button
+            onClick={reset}
+            className="h-10 gap-2 rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <RefreshCwIcon className="size-4" aria-hidden />
+            Try again
+          </Button>
+          <Button
+            onClick={() => router.push("/")}
+            variant="outline"
+            className="h-10 gap-2 rounded-xl border border-border bg-card px-4 shadow-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <HomeIcon className="size-4" aria-hidden />
+            Go to my projects
+          </Button>
         </div>
       </div>
-
-      {/* Error Message */}
-      <div className="text-center space-y-2 max-w-md">
-        <h2 className="text-2xl font-bold">Something went wrong</h2>
-        <p className="text-muted-foreground">
-          We couldn&apos;t load this project. This might be because the project is still being created
-          or there was an error.
-        </p>
-        {error.message && (
-          <p className="text-sm text-red-600 dark:text-red-400 font-mono bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-            {error.message}
-          </p>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button
-          onClick={reset}
-          variant="default"
-          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
-        >
-          <RefreshCwIcon className="size-4 mr-2" />
-          Try Again
-        </Button>
-        <Button
-          onClick={() => router.push("/")}
-          variant="outline"
-        >
-          <HomeIcon className="size-4 mr-2" />
-          Go Home
-        </Button>
-      </div>
-    </div>
+    </main>
   );
 }

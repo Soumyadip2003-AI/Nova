@@ -7,8 +7,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-satoshi);
+  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-satoshi);
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-soft: var(--success-soft);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-highlight: var(--highlight);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -44,73 +50,87 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Nova: light, friendly and polished. Ink text on white, one moving
+   colour field (the "nova" gradient: orange, pink, violet, cyan) used once
+   per page, soft layered shadows, rounded shapes. */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.875rem;
+  --background: #ffffff;
+  --foreground: #0b1b33;
+  --card: #ffffff;
+  --card-foreground: #0b1b33;
+  --popover: #ffffff;
+  --popover-foreground: #0b1b33;
+  --primary: #0b1b33;
+  --primary-foreground: #ffffff;
+  --secondary: #f6f8fb;
+  --secondary-foreground: #0b1b33;
+  --muted: #f6f8fb;
+  --muted-foreground: #47546d;
+  --accent: #f1eeff;
+  --accent-foreground: #4b2fd6;
+  --destructive: #e5484d;
+  --destructive-soft: #fdecec;
+  --success: #12a36a;
+  --success-strong: #0c7a4f;
+  --success-soft: #e8f7f0;
+  --highlight: #7c5cff;
+  --nova-orange: #ff6a3d;
+  --nova-pink: #ff3d7f;
+  --nova-violet: #7c5cff;
+  --nova-cyan: #1fc8e6;
+  --border: #e6e9ef;
+  --input: #d5dae3;
+  --ring: #7c5cff;
+  --chart-1: #0b1b33;
+  --chart-2: #12a36a;
+  --chart-3: #e5484d;
+  --chart-4: #7c5cff;
+  --chart-5: #ff6a3d;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0b1b33;
+  --sidebar-primary: #0b1b33;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f6f8fb;
+  --sidebar-accent-foreground: #0b1b33;
+  --sidebar-border: #e6e9ef;
+  --sidebar-ring: #7c5cff;
+  --float-shadow: 0 1px 1px rgba(11, 27, 51, 0.04), 0 12px 32px -12px rgba(11, 27, 51, 0.18), 0 40px 80px -40px rgba(11, 27, 51, 0.25);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0a1222;
+  --foreground: #f3f5f9;
+  --card: #111b2e;
+  --card-foreground: #f3f5f9;
+  --popover: #111b2e;
+  --popover-foreground: #f3f5f9;
+  --primary: #f3f5f9;
+  --primary-foreground: #0b1b33;
+  --secondary: #17233a;
+  --secondary-foreground: #f3f5f9;
+  --muted: #17233a;
+  --muted-foreground: #a3aec2;
+  --accent: #231c4d;
+  --accent-foreground: #c9bdff;
+  --destructive: #ff6b6f;
+  --destructive-soft: #3a1820;
+  --success: #3ccf91;
+  --success-strong: #3ccf91;
+  --success-soft: #0f2f25;
+  --highlight: #9d86ff;
+  --border: #22304a;
+  --input: #2c3b58;
+  --ring: #9d86ff;
+  --sidebar: #111b2e;
+  --sidebar-foreground: #f3f5f9;
+  --sidebar-primary: #9d86ff;
+  --sidebar-primary-foreground: #0b1b33;
+  --sidebar-accent: #17233a;
+  --sidebar-accent-foreground: #f3f5f9;
+  --sidebar-border: #22304a;
+  --sidebar-ring: #9d86ff;
+  --float-shadow: 0 1px 1px rgba(0, 0, 0, 0.3), 0 16px 40px -16px rgba(0, 0, 0, 0.6);
 }
 
 @layer base {
@@ -177,69 +197,30 @@
   animation: fade-in-up 0.5s ease-out forwards;
 }
 
-/* Floating animation for hero orbs */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-  }
-  25% {
-    transform: translateY(-20px) translateX(10px);
-  }
-  50% {
-    transform: translateY(-10px) translateX(-10px);
-  }
-  75% {
-    transform: translateY(-30px) translateX(5px);
-  }
+/* The nova colour field: a slow-moving gradient, used once per page. */
+@keyframes nova-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.bg-nova {
+  background-image: linear-gradient(120deg, #ffb36b, var(--nova-orange) 20%, var(--nova-pink) 40%, var(--nova-violet) 62%, var(--nova-cyan) 85%, #7fe3c0);
+  background-size: 220% 220%;
+  animation: nova-flow 14s ease-in-out infinite;
 }
 
-@keyframes float-delayed {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-  }
-  25% {
-    transform: translateY(-15px) translateX(-15px);
-  }
-  50% {
-    transform: translateY(-25px) translateX(10px);
-  }
-  75% {
-    transform: translateY(-10px) translateX(-5px);
-  }
+/* Soft layered elevation for floating cards. */
+.shadow-float {
+  box-shadow: var(--float-shadow);
 }
 
-/* Blob animation for background */
-@keyframes blob {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
+::selection {
+  background: color-mix(in srgb, var(--nova-violet) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  25% {
-    transform: translate(20px, -30px) scale(1.05);
-  }
-  50% {
-    transform: translate(-20px, 20px) scale(0.95);
-  }
-  75% {
-    transform: translate(30px, 10px) scale(1.02);
-  }
-}
-
-.animate-float {
-  animation: float 8s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-  animation: float-delayed 10s ease-in-out infinite;
-}
-
-.animate-blob {
-  animation: blob 15s ease-in-out infinite;
-}
-
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
 }

@@ -4,10 +4,8 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Logo } from "@/components/logo";
 import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDownIcon, ChevronLeftIcon, SunIcon, MoonIcon, MonitorIcon, SparklesIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, SunIcon, MoonIcon, MonitorIcon } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/model-selector";
 import {
     DropdownMenu,
@@ -27,6 +25,8 @@ interface Props {
     projectId: string;
 }
 
+const iconTile = "flex size-8 items-center justify-center rounded-xl bg-muted";
+
 export const ProjectHeader = ({ projectId }: Props) => {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
@@ -45,79 +45,80 @@ export const ProjectHeader = ({ projectId }: Props) => {
         })
     );
 
+    const model = project.model || "gpt-4o-mini";
+    const onModelChange = (next: string) => updateModel.mutate({ id: projectId, model: next });
+
     return (
-        <header className="p-3 flex justify-between items-center border-b bg-background/80 backdrop-blur-sm">
+        <div className="flex min-w-0 items-center gap-2 md:gap-4">
+            <h1 className="sr-only">{project.name}</h1>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                            "gap-2 px-2 h-9 rounded-xl transition-all",
-                            "hover:bg-muted focus-visible:ring-0",
-                            "group"
-                        )}
+                    <button
+                        type="button"
+                        className="group flex min-w-0 items-center gap-2.5 rounded-xl px-1.5 py-1 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                        {/* Logo with glow effect */}
-                        <Logo size={16} withContainer containerClassName="size-7 p-1.5" hover />
-
-                        {/* Project name */}
-                        <span className="text-sm font-semibold truncate max-w-[100px] sm:max-w-[150px]">
+                        <Logo size={22} />
+                        <span className="truncate text-base font-bold tracking-[-0.02em] max-w-[6rem] sm:max-w-[16rem]">
                             {project.name}
                         </span>
-
-                        <ChevronDownIcon className="size-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </Button>
+                        <ChevronDownIcon
+                            className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground"
+                            aria-hidden
+                        />
+                        <span className="sr-only">Project menu</span>
+                    </button>
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent
                     side="bottom"
                     align="start"
-                    className="w-56 rounded-xl border-border/50 shadow-xl"
+                    className="w-60 rounded-2xl border border-border p-1.5"
                 >
-                    <DropdownMenuItem asChild className="rounded-lg gap-3 py-2.5 cursor-pointer">
+                    <DropdownMenuItem asChild className="cursor-pointer gap-3 rounded-xl py-2">
                         <Link href="/">
-                            <div className="size-8 rounded-lg bg-muted flex items-center justify-center">
-                                <ChevronLeftIcon className="size-4" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-medium">Dashboard</span>
-                                <span className="text-xs text-muted-foreground">Back to all projects</span>
-                            </div>
+                            <span className={iconTile}>
+                                <ChevronLeftIcon className="size-4" aria-hidden />
+                            </span>
+                            <span className="flex flex-col">
+                                <span className="font-medium">All projects</span>
+                                <span className="text-xs text-muted-foreground">Back to your projects</span>
+                            </span>
                         </Link>
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 
                     <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="rounded-lg gap-3 py-2.5">
-                            <div className="size-8 rounded-lg bg-muted flex items-center justify-center">
+                        <DropdownMenuSubTrigger className="gap-3 rounded-xl py-2">
+                            <span className={iconTile}>
                                 {theme === "dark" ? (
-                                    <MoonIcon className="size-4" />
+                                    <MoonIcon className="size-4" aria-hidden />
                                 ) : theme === "light" ? (
-                                    <SunIcon className="size-4" />
+                                    <SunIcon className="size-4" aria-hidden />
                                 ) : (
-                                    <MonitorIcon className="size-4" />
+                                    <MonitorIcon className="size-4" aria-hidden />
                                 )}
-                            </div>
-                            <div className="flex flex-col">
+                            </span>
+                            <span className="flex flex-col">
                                 <span className="font-medium">Appearance</span>
-                                <span className="text-xs text-muted-foreground capitalize">{theme} mode</span>
-                            </div>
+                                <span className="text-xs text-muted-foreground">
+                                    {theme === "dark" ? "Dark" : theme === "light" ? "Light" : "System"}
+                                </span>
+                            </span>
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
-                            <DropdownMenuSubContent className="rounded-xl">
+                            <DropdownMenuSubContent className="rounded-2xl border border-border p-1.5">
                                 <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                                    <DropdownMenuRadioItem value="light" className="rounded-lg gap-2 py-2">
-                                        <SunIcon className="size-4" />
+                                    <DropdownMenuRadioItem value="light" className="gap-2 rounded-xl py-2">
+                                        <SunIcon className="size-4" aria-hidden />
                                         <span>Light</span>
                                     </DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="dark" className="rounded-lg gap-2 py-2">
-                                        <MoonIcon className="size-4" />
+                                    <DropdownMenuRadioItem value="dark" className="gap-2 rounded-xl py-2">
+                                        <MoonIcon className="size-4" aria-hidden />
                                         <span>Dark</span>
                                     </DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="system" className="rounded-lg gap-2 py-2">
-                                        <MonitorIcon className="size-4" />
+                                    <DropdownMenuRadioItem value="system" className="gap-2 rounded-xl py-2">
+                                        <MonitorIcon className="size-4" aria-hidden />
                                         <span>System</span>
                                     </DropdownMenuRadioItem>
                                 </DropdownMenuRadioGroup>
@@ -125,28 +126,30 @@ export const ProjectHeader = ({ projectId }: Props) => {
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
 
-                    <DropdownMenuSeparator />
-
-                    {/* Model Selector */}
-                    <div className="px-2 py-2">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="size-8 rounded-lg bg-muted flex items-center justify-center">
-                                <SparklesIcon className="size-4" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-medium text-sm">AI Model</span>
-                                <span className="text-xs text-muted-foreground">For code generation</span>
-                            </div>
-                        </div>
-                        <ModelSelector
-                            value={project.model || "gpt-4o-mini"}
-                            onChange={(model) => updateModel.mutate({ id: projectId, model })}
-                            disabled={updateModel.isPending}
-                            className="w-full"
-                        />
-                    </div>
                 </DropdownMenuContent>
             </DropdownMenu>
-        </header>
+
+            {/* Small screens: the picker sits beside the menu, not inside it */}
+            <div className="min-w-0 md:hidden">
+                <ModelSelector
+                    value={model}
+                    onChange={onModelChange}
+                    disabled={updateModel.isPending}
+                    className="max-w-[9rem]"
+                />
+            </div>
+
+            <div className="hidden items-center gap-2 text-sm md:flex">
+                <label htmlFor="project-model" className="text-muted-foreground">
+                    Model
+                </label>
+                <ModelSelector
+                    id="project-model"
+                    value={model}
+                    onChange={onModelChange}
+                    disabled={updateModel.isPending}
+                />
+            </div>
+        </div>
     );
 };

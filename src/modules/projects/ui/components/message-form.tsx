@@ -6,13 +6,12 @@ import TextareaAutosize from "react-textarea-autosize";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
-import { ArrowUpIcon, Loader2Icon, Square, SparklesIcon } from "lucide-react";
+import { ArrowUpIcon, Loader2Icon, Square } from "lucide-react";
 import { useMutation, useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
-import { Hint } from "@/components/hint";
 import { Usage } from "./usage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "next/navigation";
@@ -150,131 +149,96 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                     totalCredits={usage.totalCredits}
                 />
             )}
-            <div className="relative group">
-                {/* Animated gradient border */}
-                <div className={cn(
-                    "absolute -inset-px bg-gradient-to-r from-amber-500/50 via-orange-500/50 to-rose-500/50 rounded-2xl blur-sm opacity-0 transition-all duration-500",
-                    isFocused && "opacity-100"
-                )} />
-
-                {/* Glow effect */}
-                <div className={cn(
-                    "absolute -inset-2 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 rounded-3xl blur-xl opacity-0 transition-all duration-500",
-                    isFocused && "opacity-100"
-                )} />
-
-                <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className={cn(
-                        "relative rounded-2xl transition-all duration-300",
-                        "bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl",
-                        "border border-zinc-200/80 dark:border-zinc-800/80",
-                        "shadow-lg shadow-zinc-200/30 dark:shadow-zinc-900/30",
-                        isFocused && "border-amber-500/30 dark:border-amber-500/30"
-                    )}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (isThinking) {
-                                handleStopThinking();
-                            } else {
-                                form.handleSubmit(onSubmit)(e);
-                            }
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className={cn(
+                    "rounded-[20px] bg-card shadow-[inset_0_0_0_1px_var(--border),0_8px_24px_-16px_rgba(11,27,51,.3)]",
+                    isFocused && "ring-2 ring-ring/60"
+                )}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isThinking) {
+                            handleStopThinking();
+                        } else {
+                            form.handleSubmit(onSubmit)(e);
                         }
-                    }}
-                >
-                    {/* Input area */}
-                    <div className="p-4 pb-2">
-                        <FormField
-                            control={form.control}
-                            name="value"
-                            render={({ field }) => (
-                                <TextareaAutosize
-                                    minRows={2}
-                                    maxRows={8}
-                                    {...field}
-                                    readOnly={isThinking}
-                                    className={cn(
-                                        "resize-none border-none w-full outline-none bg-transparent text-sm leading-relaxed",
-                                        "placeholder:text-muted-foreground/60",
-                                        isThinking && "cursor-not-allowed opacity-60"
-                                    )}
-                                    onFocus={() => setIsFocused(true)}
-                                    onBlur={() => setIsFocused(false)}
-                                    placeholder={isThinking ? "Nova is thinking..." : "What would you like to build?"}
-                                />
-                            )}
-                        />
-                    </div>
-
-                    {/* Footer with actions */}
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200/60 dark:border-zinc-800/60">
-                        {/* Model selector and keyboard hint */}
-                        <div className="flex items-center gap-3">
-                            <ModelSelector
-                                value={project.model || "gpt-4o-mini"}
-                                onChange={(model) => updateModel.mutate({ id: projectId, model })}
-                                disabled={updateModel.isPending || isThinking}
+                    }
+                }}
+            >
+                <label htmlFor={`message-${projectId}`} className="sr-only">
+                    Ask for a change
+                </label>
+                <div className="px-3.5 pt-3 pb-1.5">
+                    <FormField
+                        control={form.control}
+                        name="value"
+                        render={({ field }) => (
+                            <TextareaAutosize
+                                id={`message-${projectId}`}
+                                minRows={2}
+                                maxRows={8}
+                                {...field}
+                                readOnly={isThinking}
+                                className={cn(
+                                    "w-full resize-none border-none bg-transparent text-[15px] leading-relaxed outline-none",
+                                    "placeholder:text-muted-foreground",
+                                    isThinking && "cursor-not-allowed text-muted-foreground"
+                                )}
+                                onFocus={() => setIsFocused(true)}
+                                onBlur={() => setIsFocused(false)}
+                                placeholder={isThinking ? "Nova is working on it" : "Ask for a change, in plain words"}
                             />
-                            <div className={cn("hidden items-center gap-2 text-xs text-muted-foreground", !isMobile && "sm:flex")}>
-                                <kbd className="inline-flex h-5 items-center gap-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-100/80 dark:bg-zinc-800/80 px-1.5 font-mono text-[10px] font-medium shadow-sm">
-                                    <span className="text-xs">⌘/Ctrl</span>
-                                    <span>Enter</span>
-                                </kbd>
-                                <span>to {isThinking ? "cancel" : "send"}</span>
-                            </div>
-                        </div>
+                        )}
+                    />
+                </div>
 
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-2">
-                            {isThinking ? (
-                                <Hint text="Stop generating" side="top">
-                                    <Button
-                                        type="button"
-                                        onClick={handleStopThinking}
-                                        disabled={isCancelling}
-                                        size="sm"
-                                        className={cn(
-                                            "h-9 px-4 rounded-xl gap-2 transition-all duration-300",
-                                            "bg-red-500 hover:bg-red-600 text-white",
-                                            "shadow-lg shadow-red-500/20 hover:shadow-red-500/30",
-                                            isCancelling && "opacity-50"
-                                        )}
-                                    >
-                                        {isCancelling ? (
-                                            <Loader2Icon className="size-4 animate-spin" />
-                                        ) : (
-                                            <>
-                                                <Square className="size-3.5" fill="currentColor" />
-                                                <span className="text-xs font-medium">Stop</span>
-                                            </>
-                                        )}
-                                    </Button>
-                                </Hint>
-                            ) : (
-                                <Hint text="Send message" side="top">
-                                    <Button
-                                        type="submit"
-                                        disabled={isButtonDisabled}
-                                        size="sm"
-                                        className={cn(
-                                            "h-9 px-4 rounded-xl gap-2 transition-all duration-300",
-                                            isButtonDisabled
-                                                ? "bg-muted text-muted-foreground border border-border/50"
-                                                : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30"
-                                        )}
-                                    >
-                                        <SparklesIcon className="size-3.5" />
-                                        <span className="text-xs font-medium">Send</span>
-                                        <ArrowUpIcon className="size-3.5" />
-                                    </Button>
-                                </Hint>
-                            )}
-                        </div>
+                <div className="flex items-center justify-between gap-2 px-3 pb-3 pt-1.5">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <ModelSelector
+                            value={project.model || "gpt-4o-mini"}
+                            onChange={(model) => updateModel.mutate({ id: projectId, model })}
+                            disabled={updateModel.isPending || isThinking}
+                        />
+                        <p className={cn("hidden items-center gap-1.5 font-mono text-xs text-muted-foreground", !isMobile && "lg:flex")}>
+                            <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">Ctrl or Cmd + Enter</kbd>
+                            to {isThinking ? "stop" : "send"}
+                        </p>
                     </div>
-                </form>
-            </div>
+
+                    {isThinking ? (
+                        <Button
+                            type="button"
+                            onClick={handleStopThinking}
+                            disabled={isCancelling}
+                            variant="outline"
+                            className="h-9 shrink-0 gap-2 rounded-full border border-destructive px-4 text-destructive hover:bg-muted hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            {isCancelling ? (
+                                <>
+                                    <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                                    <span>Stopping</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Square className="size-3.5" fill="currentColor" aria-hidden />
+                                    <span>Stop</span>
+                                </>
+                            )}
+                        </Button>
+                    ) : (
+                        <Button
+                            type="submit"
+                            disabled={isButtonDisabled}
+                            className="h-9 shrink-0 gap-2 rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                        >
+                            Send
+                            <ArrowUpIcon className="size-4" aria-hidden />
+                        </Button>
+                    )}
+                </div>
+            </form>
         </Form>
     );
 };

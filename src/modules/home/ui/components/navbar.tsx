@@ -2,50 +2,51 @@
 
 import Link from "next/link";
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
 import { UserControl } from "@/components/user-control";
 import { Logo } from "@/components/logo";
-import { useScroll } from "@/hooks/use-scroll";
-import { cn } from "@/lib/utils";
+
+const linkClass =
+    "rounded-full px-2 py-1 text-[15px] font-medium text-white/90 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white";
 
 export const Navbar = () => {
-    const isScrolled = useScroll(10);
-
     return (
-        <nav
-            className={cn(
-                "p-4 fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-                isScrolled
-                    ? "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
-                    : "bg-transparent border-b border-transparent"
-            )}
-        >
-            <div className="max-w-5xl mx-auto w-full flex justify-between items-center">
-                <Link href="/" className="flex items-center">
-                    <Logo size={20} showText hover withContainer containerClassName="size-10 p-2 rounded-lg" />
+        <header className="mx-auto flex h-[76px] w-full max-w-[1180px] items-center gap-2 px-5 sm:gap-6 sm:px-8">
+            <Link
+                href="/"
+                className="mr-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:mr-4"
+            >
+                <Logo size={24} showText inverted />
+            </Link>
+            <nav aria-label="Main" className="flex flex-1 items-center gap-1 sm:gap-4">
+                <Link href="/#examples" className={`${linkClass} hidden md:inline`}>
+                    Examples
                 </Link>
+                <Link href="/#how-it-works" className={`${linkClass} hidden md:inline`}>
+                    How it works
+                </Link>
+                <Link href="/pricing" className={linkClass}>
+                    Pricing
+                </Link>
+                <span className="flex-1" />
                 <SignedOut>
-                    <div className="flex gap-2">
-                        <SignUpButton>
-                            <Button variant="outline" size="sm">
-                                Sign Up
-
-                            </Button>
-                        </SignUpButton>
-                        <SignInButton>
-                            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                                Sign In
-
-                            </Button>
-                        </SignInButton>
-
-                    </div>
+                    <SignInButton>
+                        <button type="button" className={`${linkClass} hidden sm:inline`}>
+                            Sign in
+                        </button>
+                    </SignInButton>
+                    <SignUpButton>
+                        <button
+                            type="button"
+                            className="inline-flex h-10 items-center rounded-full bg-white px-4 text-[15px] font-bold text-[#0b1b33] shadow-sm transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#ff3d7f] sm:px-5"
+                        >
+                            Start building
+                        </button>
+                    </SignUpButton>
                 </SignedOut>
                 <SignedIn>
-                   <UserControl showName/>
+                    <UserControl showName inverted />
                 </SignedIn>
-            </div>
-
-        </nav>
-    )
-}
+            </nav>
+        </header>
+    );
+};
