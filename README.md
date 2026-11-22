@@ -9,6 +9,8 @@ Describe an app in plain words. Nova's AI agent writes the code, runs it in a cl
 ## What it does
 
 - **Build from a prompt.** The agent writes a Next.js app inside an isolated E2B sandbox.
+- **Full-stack apps.** When an app needs to keep data, the agent adds API routes, server actions and a SQLite database with a schema and seed data, plus email and password sign-in when the app needs accounts. The self-check calls each API route.
+- **Design references.** Attach screenshots, screen recordings (sampled into frames in the browser), PDFs, text or code files and links. A vision model turns them into a design brief the build follows, and uploaded images are copied into the app. Files are kept in private Vercel Blob storage.
 - **Self-check and repair.** After writing, Nova runs TypeScript and loads the app's home page. Any error goes back to the agent to fix before you see the result.
 - **Real thinking log.** Each step the agent takes is shown as it happens, collapsed to two lines with a toggle.
 - **Live preview, code and versions.** Every change is saved as a version you can open again.

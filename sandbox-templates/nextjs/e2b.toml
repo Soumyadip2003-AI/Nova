@@ -12,6 +12,10 @@
 
 team_id = "456ff89a-0dc4-42db-ada1-5d36e0186627"
 start_cmd = "/compile_page.sh"
+# 1 GB left next dev with ~300 MB free; type checks and full-stack apps ran it
+# out of memory. Takes effect on the next `e2b template build`.
+memory_mb = 2048
+cpu_count = 2
 dockerfile = "e2b.Dockerfile"
 template_name = "vibe-nextjs-soumyadip-888"
 template_id = "c7kxk6kebmrc9xzxb09f"

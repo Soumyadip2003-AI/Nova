@@ -1,4 +1,5 @@
 import { getSandbox } from "./utils";
+import { DEV_SERVER_LOG, ensureDevServer } from "@/lib/project-files";
 
 /* Self-healing check: after the agent writes code, Nova verifies it the way a
    developer would before handing it over, and feeds any problems back to the
@@ -69,27 +70,63 @@ export async function verifySandbox(sandboxId: string, changed: string[]): Promi
   const problems: string[] = [];
   const codeFiles = changed.filter((f) => /\.(tsx?|jsx?)$/.test(f));
   if (codeFiles.length) {
-    const tsc = await run("npx tsc --noEmit --pretty false -p . 2>&1 | head -200", 90_000);
+    // The sandbox has 1 GB and next dev already uses most of it; an uncapped
+    // tsc can push the dev server out of memory. Capped, tsc fails alone.
+    const tsc = await run("NODE_OPTIONS=--max-old-space-size=320 npx tsc --noEmit --pretty false -p . 2>&1 | head -200", 90_000);
     problems.push(...typeErrorsFor(tsc, codeFiles).slice(0, 20));
+  }
+
+  // The dev server must be up before the app can be judged; if it died, start
+  // it again (its own crash is not a problem in the agent's code to repair).
+  // Budget: this whole check runs in one step, under Vercel's 300s limit.
+  const server = await ensureDevServer(sandbox, 40_000);
+  if (server === "down") {
+    const log = await run(`tail -c 1500 ${DEV_SERVER_LOG} 2>/dev/null || true`, 10_000);
+    problems.push(`The app's server does not start. Its last output: ${log.replace(/\s+/g, " ").trim().slice(-800) || "(none)"}`);
+    return { ok: false, problems };
   }
 
   // Give the dev server a moment to recompile what was just written.
   const page = await run(
-    "sleep 3; curl -s -m 30 -o /tmp/nova-page.html -w '%{http_code}' http://localhost:3000; echo; head -c 20000 /tmp/nova-page.html",
-    45_000,
+    "sleep 2; curl -s -m 40 -o /tmp/nova-page.html -w '%{http_code}' http://localhost:3000 || true; echo; head -c 20000 /tmp/nova-page.html 2>/dev/null",
+    50_000,
   );
   const [statusLine = "", ...rest] = page.trimStart().split("\n");
   const pageIssue = pageProblem(Number(statusLine.trim()) || 0, rest.join("\n"));
   if (pageIssue) problems.push(pageIssue);
 
+  // Full-stack apps: each API route the agent wrote must answer GET without a
+  // server error (405 for POST-only routes is fine).
+  for (const route of apiRoutesFor(changed).slice(0, 4)) {
+    const out = await run(`curl -s -m 15 -o /tmp/nova-api.txt -w '%{http_code}' http://localhost:3000${route} || true; echo; head -c 400 /tmp/nova-api.txt 2>/dev/null`, 20_000);
+    const [code = "", ...body] = out.trimStart().split("\n");
+    const status = Number(code.trim()) || 0;
+    if (status === 0 || status >= 500) {
+      problems.push(`GET ${route} ${status ? `returns HTTP ${status}` : "did not respond"}${body.join(" ").trim() ? `: ${body.join(" ").replace(/\s+/g, " ").trim().slice(0, 300)}` : ""}`);
+    }
+  }
+
   return { ok: problems.length === 0, problems };
+}
+
+/** URL paths of the static API routes among the changed files (dynamic [id] routes are skipped). */
+export function apiRoutesFor(changed: string[]): string[] {
+  return changed
+    .map((f) => f.replace(/^\.?\//, "").match(/^(?:src\/)?app\/(api\/.*?)\/?route\.(?:ts|js)$/)?.[1])
+    .filter((p): p is string => !!p && !p.includes("["))
+    .map((p) => `/${p.replace(/\([^)]*\)\//g, "").replace(/\/$/, "")}`);
 }
 
 /** Source files named in tsc problem lines, e.g. "app/layout.tsx(3,1): error ...". */
 export function problemFiles(problems: string[]): string[] {
   const files = problems
-    .map((p) => p.match(/^([\w./@-]+\.(?:tsx?|jsx?))\(\d+,\d+\)/)?.[1])
-    .filter((f): f is string => Boolean(f));
+    .flatMap((p) => {
+      const tsFile = p.match(/^([\w./@-]+\.(?:tsx?|jsx?))\(\d+,\d+\)/)?.[1];
+      if (tsFile) return [tsFile];
+      // A failing API route: its handler, and the database module it most likely uses.
+      const route = p.match(/^GET (\/api\/[\w/-]+)/)?.[1];
+      return route ? [`app${route}/route.ts`, "lib/db.ts"] : [];
+    });
   return [...new Set(files)].slice(0, 5);
 }
 

@@ -19,6 +19,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { EffortSelector, ModelSelector, useEffort } from "@/components/model-selector";
+import { AttachButton, AttachmentTray, useAttachments } from "@/components/attachments";
 import { getDefaultModel } from "@/lib/models";
 
 const formSchema = z.object({
@@ -48,6 +49,7 @@ export const ProjectForm = () => {
     // Model selection state
     const [selectedModel, setSelectedModel] = useState<string>(() => getDefaultModel(false));
     const [effort, setEffort] = useEffort();
+    const references = useAttachments();
 
     // Update default model when plan status changes
     useEffect(() => {
@@ -107,12 +109,22 @@ export const ProjectForm = () => {
             return;
         }
 
+        if (references.uploading) {
+            toast.info("Your files are still uploading. Build again in a moment.");
+            return;
+        }
+
         // Store the value before resetting
         const submittedValue = values.value;
         form.reset({ value: "" });
 
         // Optimistic mutation: start the mutation and get the promise
-        const mutationPromise = createProject.mutateAsync({ value: submittedValue, model: selectedModel, effort });
+        const mutationPromise = createProject.mutateAsync({
+            value: submittedValue,
+            model: selectedModel,
+            effort,
+            attachments: references.attachments.length ? references.attachments : undefined,
+        });
 
         // Wait for the mutation to complete and get the project ID
         mutationPromise.then((data) => {
@@ -143,9 +155,11 @@ export const ProjectForm = () => {
             <section className="space-y-4">
                 <form
                     onSubmit={form.handleSubmit(onSubmit)}
+                    {...references.dropProps}
                     className={cn(
                         "rounded-[20px] bg-card p-4 text-card-foreground shadow-float sm:p-5",
-                        "focus-within:ring-2 focus-within:ring-ring/60"
+                        "focus-within:ring-2 focus-within:ring-ring/60",
+                        references.dragging && "ring-2 ring-ring/60"
                     )}
                     onKeyDown={(e) => {
                         if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
@@ -168,6 +182,7 @@ export const ProjectForm = () => {
                                 maxRows={8}
                                 {...field}
                                 readOnly={isSubmitting}
+                                onPaste={references.onPaste}
                                 className={cn(
                                     "mt-1.5 w-full resize-none border-none bg-transparent text-[17px] font-medium leading-normal text-foreground outline-none",
                                     "placeholder:text-muted-foreground",
@@ -177,9 +192,11 @@ export const ProjectForm = () => {
                             />
                         )}
                     />
+                    <AttachmentTray state={references} className="px-0 pt-1" />
 
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            <AttachButton state={references} disabled={isSubmitting} />
                             {isSignedIn && (
                                 <ModelSelector
                                     value={selectedModel}

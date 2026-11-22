@@ -16,6 +16,7 @@ import { Usage } from "./usage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "next/navigation";
 import { EffortSelector, ModelSelector, useEffort } from "@/components/model-selector";
+import { AttachButton, AttachmentTray, useAttachments } from "@/components/attachments";
 
 interface Props {
     projectId: string;
@@ -37,6 +38,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
     const [isFocused, setIsFocused] = useState(false);
     const [effort, setEffort] = useEffort();
     const isMobile = useIsMobile();
+    const references = useAttachments();
 
     // Fetch project data for model selection
     const { data: project } = useSuspenseQuery(
@@ -91,12 +93,20 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
     }));
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        if (references.uploading) {
+            toast.info("Your files are still uploading. Send again in a moment.");
+            return;
+        }
         form.reset({ value: "" });
-        createMessage.mutate({
-            value: values.value,
-            projectId,
-            effort,
-        });
+        createMessage.mutate(
+            {
+                value: values.value,
+                projectId,
+                effort,
+                attachments: references.attachments.length ? references.attachments : undefined,
+            },
+            { onSuccess: () => references.clear() },
+        );
     };
 
     const handleStopThinking = useCallback(async () => {
@@ -154,9 +164,10 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
             )}
             <form
                 onSubmit={form.handleSubmit(onSubmit)}
+                {...references.dropProps}
                 className={cn(
                     "rounded-[20px] bg-card shadow-[inset_0_0_0_1px_var(--border),0_8px_24px_-16px_rgba(11,27,51,.3)]",
-                    isFocused && "ring-2 ring-ring/60"
+                    (isFocused || references.dragging) && "ring-2 ring-ring/60"
                 )}
                 onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !isMobile) {
@@ -173,6 +184,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                 <label htmlFor={`message-${projectId}`} className="sr-only">
                     Ask for a change
                 </label>
+                <AttachmentTray state={references} />
                 <div className="px-3.5 pt-3 pb-1.5">
                     <FormField
                         control={form.control}
@@ -191,6 +203,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                                 )}
                                 onFocus={() => setIsFocused(true)}
                                 onBlur={() => setIsFocused(false)}
+                                onPaste={references.onPaste}
                                 placeholder={isThinking ? "Nova is working on it" : "Ask for a change, in plain words"}
                             />
                         )}
@@ -201,6 +214,7 @@ export const MessageForm = ({ projectId, isThinking = false, onCancelThinking }:
                     cannot shrink, and on one line they ran under the Send button. */}
                 <div className="@container flex items-end justify-between gap-2 px-3 pb-3 pt-1.5">
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                        <AttachButton state={references} disabled={isThinking} />
                         <ModelSelector
                             value={project.model || "gpt-4o-mini"}
                             onChange={(model) => updateModel.mutate({ id: projectId, model })}

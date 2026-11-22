@@ -43,6 +43,10 @@ const QUESTION_PATTERNS = [
 
 // Code generation indicators - words/patterns that suggest user wants to build something
 const CODE_PATTERNS = [
+  // An instruction is a change request, whatever follows ("Show how many tasks
+  // are open" is not a question), unless it ends with a question mark.
+  /^(please\s+)?(show|add|make|let|put|move|remove|delete|hide|rename|use|replace|turn|set|give|display|allow|switch|swap|center|align|increase|decrease|change|update|fix|improve|create|build|include|insert|sort|filter|group|save|store|connect|enable|disable)\b(?![\s\S]*\?\s*$)/i,
+
   // Direct creation requests
   /^(make|create|build|generate|develop|design|implement|code|write)\s+(a|an|the|me|this)?\s*/i,
   /^add\s+(a|an|the)?\s*(new\s+)?(feature|component|page|section|button|form|modal)/i,
