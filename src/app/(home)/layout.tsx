@@ -1,4 +1,5 @@
 import { Navbar } from "@/modules/home/ui/components/navbar";
+import { SiteFooter } from "@/modules/home/ui/components/site-footer";
 
 interface Props {
     children: React.ReactNode;
@@ -14,6 +15,7 @@ const Layout = ({ children }: Props) => {
             />
             <Navbar />
             <main className="flex flex-1 flex-col">{children}</main>
+            <SiteFooter />
         </div>
     );
 };

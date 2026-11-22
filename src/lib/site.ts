@@ -1,0 +1,9 @@
+/** Public facts about the service, used by the footer, legal pages and metadata. */
+export const SITE = {
+    name: "Nova",
+    url: "https://nova-five-black.vercel.app",
+    operator: "Soumyadip Sarkar",
+    country: "India",
+    email: "soumyadipsarkar459@gmail.com",
+    legalUpdated: "22 November 2026",
+} as const;
