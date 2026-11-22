@@ -102,9 +102,11 @@ export async function ensureDevServer(sandbox: Sandbox, waitMs = 60_000): Promis
     if (await answers()) return "running";
 
     // -p 3000: if an old server still holds the port, this one exits instead of moving to 3001.
+    // As root, like the template's start command: the first server's .next
+    // files are root's, and a server started as "user" died with EACCES.
     await sandbox.commands.run(
         `cd /home/user && (setsid nohup npx next dev --turbopack -p 3000 > ${DEV_SERVER_LOG} 2>&1 &)`,
-        { timeoutMs: 15_000 },
+        { timeoutMs: 15_000, user: "root" },
     );
     const deadline = Date.now() + waitMs;
     while (Date.now() < deadline) {
