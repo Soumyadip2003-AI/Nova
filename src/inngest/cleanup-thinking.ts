@@ -58,6 +58,13 @@ export const cleanupOrphanedThinkingMessages = inngest.createFunction(
   },
   { cron: "*/5 * * * *" }, // Run every 5 minutes
   async ({ step }) => {
+    // Preview deployments get their own Inngest branch environment, each with
+    // its own copy of this cron, but they share the production database. Old
+    // previews kept failing live builds with whatever cleanup rule they were
+    // built with, so only the production deployment may clean up.
+    if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+      return { skipped: `not production (${process.env.VERCEL_ENV})` };
+    }
     const result = await step.run("stop-stalled-builds", () => stopStalledBuilds());
     if (result.stopped > 0) console.warn(`Stopped ${result.stopped} stalled build(s)`);
     return result;
