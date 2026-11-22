@@ -496,24 +496,17 @@ export const codeAgentFunction = inngest.createFunction(
         files: Object.keys(result.state.data.files || {}),
       });
 
-      // Consider it an error only if NO files were created
-      // (Summary is optional - we'll generate a fallback if needed)
+      // Files this run wrote with the file tool (summary is optional).
       const files = result.state.data.files || {};
-      const hasFiles = Object.keys(files).length > 0;
-      const isError = !hasFiles;
-
-      console.log("=== FILE CHECK ===");
-      console.log("isError:", isError);
-      console.log("hasFiles:", hasFiles);
-      console.log("files object:", files);
-      console.log("file count:", Object.keys(files).length);
-      console.log("file paths:", Object.keys(files));
-      console.log("=================");
+      console.log("Files written this run:", Object.keys(files));
 
       // A version is the whole project: the last version's files plus this
       // run's changes (and package.json when packages were installed). Saving
       // only this run's files dropped everything else from the next build,
-      // from restarted previews and from the Code tab.
+      // from restarted previews and from the Code tab. Each file is read back
+      // from the sandbox, so edits the agent made through the terminal count
+      // too: a follow-up that only used the terminal used to fail with "no
+      // files were created" although the app had changed.
       const dependenciesChanged = !!result.state.data.dependenciesChanged;
       const projectFiles = await step.run("collect-files", async () => {
         const last = await prisma.fragment.findFirst({
@@ -522,15 +515,20 @@ export const codeAgentFunction = inngest.createFunction(
           select: { files: true },
         });
         const merged: Record<string, string> = { ...((last?.files as Record<string, string> | undefined) ?? {}), ...files };
-        if (dependenciesChanged) {
+        if (dependenciesChanged) merged["package.json"] = merged["package.json"] ?? "";
+        const sandbox = await getSandbox(sandboxId);
+        for (const path of Object.keys(merged)) {
           try {
-            merged["package.json"] = await (await getSandbox(sandboxId)).files.read("package.json");
-          } catch (error) {
-            console.error("Could not read package.json:", error);
+            merged[path] = await sandbox.files.read(path);
+          } catch {
+            // Deleted or unreadable in the sandbox: keep the saved text, or drop an empty placeholder.
+            if (!merged[path]) delete merged[path];
           }
         }
         return merged;
       });
+      // An error only when the project has no files at all.
+      const isError = Object.keys(projectFiles).length === 0;
 
       const sandboxUrl = await step.run("get-sandbox-url", async () => {
         await addThinkingStep(
@@ -575,8 +573,9 @@ export const codeAgentFunction = inngest.createFunction(
 
           if (!taskSummary) {
             // No task summary - generate basic fallback
-            const fileCount = Object.keys(files).length;
-            const fileList = Object.keys(files).slice(0, 5).join(", ");
+            const listed = Object.keys(files).length ? files : projectFiles;
+            const fileCount = Object.keys(listed).length;
+            const fileList = Object.keys(listed).slice(0, 5).join(", ");
             userFriendlySummary = `Successfully generated ${fileCount} file${fileCount !== 1 ? 's' : ''} including: ${fileList}${fileCount > 5 ? ', and more' : ''}.`;
             fragmentTitle = projectName;
             console.log("Generated fallback summary (no AI summary)");
