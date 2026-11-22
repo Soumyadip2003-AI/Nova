@@ -62,7 +62,9 @@ export const ProjectView = ({ projectId }: Props) => {
     const [activeFragment, setActiveFragment] = useState<Fragment | null>(null);
     const [tabState, setTabState] = useState<"preview" | "code">("preview");
     const trpc = useTRPC();
-    const isMobile = useIsMobile();
+    // Side by side only from 1024px: below that the chat column was about 260px,
+    // too narrow for the composer, so its pickers ran under the Send button.
+    const isMobile = useIsMobile(1024);
 
     // Ensure project exists and is hydrated from server prefetch
     useSuspenseQuery({
@@ -95,7 +97,7 @@ export const ProjectView = ({ projectId }: Props) => {
                 {/* Left panel: chat */}
                 <ResizablePanel
                     defaultSize={isMobile ? 55 : 35}
-                    minSize={25}
+                    minSize={isMobile ? 25 : 30}
                     maxSize={isMobile ? 75 : 50}
                     className="flex min-h-0 flex-col bg-card"
                 >
